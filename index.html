@@ -1,0 +1,1651 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Morning Devotion · 오늘의 묵상</title>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fafaf7;
+    --surface: #ffffff;
+    --surface-2: #f3f2ec;
+    --line: #e6e4dc;
+    --line-soft: #efede5;
+    --text: #1a1a17;
+    --text-soft: #5c5a52;
+    --text-faint: #908d83;
+    --accent: #1d4d52;
+    --accent-soft: #4a7e83;
+    --accent-bg: #e9f0f0;
+    --warm: #b8612c;
+    --warm-bg: #faf0e8;
+  }
+  
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    line-height: 1.65;
+  }
+  
+  .container {
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 24px 24px 96px;
+  }
+  
+  .topnav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    margin-bottom: 24px;
+    border-bottom: 1px solid var(--line);
+  }
+  .back-link { font-size: 13px; color: var(--text-soft); text-decoration: none; }
+  .back-link:hover { color: var(--accent); }
+  .nav-date { font-size: 12px; color: var(--text-faint); }
+  
+  /* 시작 화면 */
+  .starter { text-align: center; padding: 40px 20px; }
+  .starter h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 48px;
+    letter-spacing: -0.03em;
+    margin-bottom: 12px;
+  }
+  .starter .subtitle {
+    font-size: 16px;
+    color: var(--text-soft);
+    margin-bottom: 36px;
+  }
+  
+  /* 시작 화면 — 묵상 기록 통계 */
+  .starter-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--line-soft);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 28px;
+    max-width: 420px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .starter-stat {
+    background: var(--surface);
+    padding: 16px 8px;
+    text-align: center;
+  }
+  .starter-stat-num {
+    font-family: 'Fraunces', serif;
+    font-weight: 500;
+    font-size: 24px;
+    color: var(--accent);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .starter-stat-unit {
+    font-size: 12px;
+    color: var(--text-faint);
+    margin-left: 2px;
+    font-weight: 400;
+  }
+  .starter-stat-label {
+    font-size: 10px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  
+  .api-key-section {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 16px;
+    text-align: left;
+  }
+  .api-key-section.has-key {
+    background: var(--accent-bg);
+    border-color: var(--accent-soft);
+  }
+  .api-key-label {
+    font-size: 13px;
+    color: var(--text-soft);
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .api-key-input {
+    width: 100%;
+    padding: 11px 13px;
+    font-size: 14px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-family: ui-monospace, monospace;
+    margin-bottom: 8px;
+  }
+  .api-key-input:focus { outline: none; border-color: var(--accent-soft); }
+  .api-key-save {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .api-key-toggle {
+    background: none;
+    border: none;
+    color: var(--accent);
+    font-size: 12px;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+  .key-status { font-size: 12px; margin-top: 6px; }
+  .key-status.ok { color: var(--accent); }
+  .key-status.err { color: var(--warm); }
+  
+  .url-section {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 24px;
+    text-align: left;
+  }
+  .url-label { font-size: 13px; color: var(--text-soft); margin-bottom: 8px; }
+  .url-input {
+    width: 100%;
+    padding: 11px 13px;
+    font-size: 13px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-family: ui-monospace, monospace;
+  }
+  .url-input:focus { outline: none; border-color: var(--accent-soft); }
+  .url-hint {
+    font-size: 11px;
+    color: var(--text-faint);
+    margin-top: 8px;
+    line-height: 1.5;
+  }
+  .url-hint a { color: var(--accent); text-decoration: none; }
+  
+  .start-btn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 16px 40px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 10px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .start-btn:hover { background: #163e42; }
+  .start-btn:disabled { background: var(--text-faint); cursor: not-allowed; }
+  
+  /* 진행 */
+  .progress {
+    display: none;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 24px;
+  }
+  .progress.show { display: block; }
+  .progress-step {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+    font-size: 14px;
+    color: var(--text-faint);
+    transition: color 0.3s ease;
+  }
+  .progress-step.active { color: var(--accent); font-weight: 500; }
+  .progress-step.done { color: var(--accent); }
+  .progress-step.error { color: var(--warm); }
+  .progress-icon { width: 20px; text-align: center; }
+  
+  /* 결과 */
+  .result { display: none; }
+  .result.show { display: block; }
+  
+  .article-header { margin-bottom: 48px; }
+  .eyebrow {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+  .article-header h1 {
+    font-family: 'Pretendard Variable', sans-serif;
+    font-weight: 700;
+    font-size: 36px;
+    line-height: 1.2;
+    letter-spacing: -0.025em;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .article-header .en-title {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-weight: 400;
+    font-size: 17px;
+    color: var(--text-soft);
+    margin-bottom: 18px;
+  }
+  .header-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    font-size: 13px;
+    color: var(--text-faint);
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+  }
+  
+  .section { margin-bottom: 52px; }
+  .section-label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .section-num {
+    font-family: 'Fraunces', serif;
+    font-size: 13px;
+    color: var(--text-faint);
+    width: 24px;
+    text-align: center;
+  }
+  .section-title { font-size: 14px; font-weight: 700; }
+  .section-tag {
+    font-size: 11px;
+    color: var(--text-faint);
+    padding: 2px 8px;
+    background: var(--surface-2);
+    border-radius: 99px;
+  }
+  
+  .scripture-key {
+    background: var(--accent-bg);
+    padding: 22px;
+    border-radius: 10px;
+  }
+  .scripture-key-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+    font-weight: 600;
+    margin-bottom: 10px;
+  }
+  .key-verse {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 18px;
+    line-height: 1.55;
+  }
+  .key-verse-ref {
+    display: block;
+    font-style: normal;
+    font-family: 'Pretendard Variable', sans-serif;
+    font-size: 13px;
+    color: var(--accent);
+    margin-top: 12px;
+    font-weight: 500;
+  }
+  
+  /* 성경 본문 */
+  .bible-passage {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 22px;
+    margin-top: 14px;
+  }
+  .bible-passage-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 12px;
+    margin-bottom: 14px;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .bible-passage-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .bible-passage-version {
+    font-size: 11px;
+    color: var(--text-faint);
+    padding: 2px 8px;
+    background: var(--surface-2);
+    border-radius: 99px;
+  }
+  .bible-passage-text {
+    font-size: 14.5px;
+    line-height: 1.95;
+    color: var(--text-soft);
+  }
+  .bible-passage-text .verse-num {
+    font-size: 11px;
+    color: var(--accent);
+    font-weight: 600;
+    vertical-align: super;
+    margin-right: 3px;
+  }
+  .bible-passage-text .verse-block {
+    display: block;
+    margin-bottom: 8px;
+  }
+  .bible-passage-text .key-highlight {
+    background: var(--accent-bg);
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  
+  .meditation-point {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 26px 22px;
+    border-left: 3px solid var(--accent);
+  }
+  .meditation-text { font-size: 15.5px; line-height: 1.85; }
+  .meditation-text p { margin-bottom: 14px; }
+  .meditation-text p:last-child { margin-bottom: 0; }
+  .meditation-text em { font-style: normal; font-weight: 600; color: var(--accent); }
+  
+  .insight-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 24px 22px;
+    margin-bottom: 14px;
+  }
+  .insight-card-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--line-soft);
+  }
+  .insight-card-num {
+    font-family: 'Fraunces', serif;
+    font-size: 14px;
+    color: var(--accent);
+    width: 22px;
+    height: 22px;
+    background: var(--accent-bg);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .insight-card-label { font-size: 15px; font-weight: 700; }
+  .insight-body {
+    font-size: 15px;
+    line-height: 1.85;
+    color: var(--text-soft);
+  }
+  .insight-body p { margin-bottom: 12px; }
+  .insight-body p:last-child { margin-bottom: 0; }
+  .insight-body strong { color: var(--text); font-weight: 600; }
+  
+  .greek-verify {
+    margin-top: 14px;
+    padding: 12px 16px;
+    background: var(--accent-bg);
+    border-radius: 8px;
+    font-size: 12px;
+    color: var(--accent);
+    line-height: 1.6;
+  }
+  .greek-verify a { color: var(--accent); text-decoration: underline; }
+  
+  .reflect-intro {
+    font-size: 13px;
+    color: var(--text-faint);
+    margin-bottom: 16px;
+    padding: 10px 14px;
+    background: var(--warm-bg);
+    border-radius: 6px;
+    border-left: 3px solid var(--warm);
+    line-height: 1.5;
+  }
+  .reflect-intro strong { color: var(--warm); font-weight: 600; }
+  
+  .reflect-block {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 24px 22px;
+    margin-bottom: 18px;
+  }
+  .reflect-question {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+  .reflect-q-mark {
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 22px;
+    color: var(--warm);
+    flex-shrink: 0;
+  }
+  .reflect-q-text { font-size: 15px; line-height: 1.7; }
+  .reflect-q-text strong { font-weight: 600; color: var(--accent); }
+  
+  .reflect-answer-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-faint);
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+  .reflect-textarea {
+    width: 100%;
+    min-height: 90px;
+    padding: 14px 16px;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-family: 'Pretendard Variable', sans-serif;
+    font-size: 14px;
+    line-height: 1.7;
+    resize: vertical;
+  }
+  .reflect-textarea:focus {
+    outline: none;
+    border-color: var(--accent-soft);
+    background: var(--surface);
+  }
+  .reflect-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    align-items: center;
+  }
+  .reflect-btn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .reflect-btn:disabled { background: var(--text-faint); }
+  .reflect-saved {
+    font-size: 12px;
+    color: var(--text-faint);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  .reflect-saved.show { opacity: 1; }
+  
+  .ai-response {
+    margin-top: 18px;
+    padding: 18px;
+    background: var(--accent-bg);
+    border-radius: 8px;
+    display: none;
+  }
+  .ai-response.show { display: block; animation: fadeIn 0.4s ease; }
+  .ai-response-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .ai-badge {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    background: var(--accent);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 99px;
+    font-weight: 600;
+  }
+  .ai-response-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+  }
+  .ai-response-body { font-size: 14.5px; line-height: 1.75; }
+  .ai-response-body p { margin-bottom: 10px; }
+  .ai-response-body p:last-child { margin-bottom: 0; }
+  
+  .prayer-list {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 26px 22px;
+    list-style: none;
+  }
+  .prayer-item {
+    display: flex;
+    gap: 16px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--line-soft);
+    font-size: 15px;
+    line-height: 1.7;
+  }
+  .prayer-item:first-child { padding-top: 0; }
+  .prayer-item:last-child { padding-bottom: 0; border-bottom: none; }
+  .prayer-num {
+    font-family: 'Fraunces', serif;
+    font-size: 14px;
+    color: var(--accent);
+    flex-shrink: 0;
+    min-width: 18px;
+  }
+  .prayer-amen {
+    margin-top: 32px;
+    text-align: center;
+    font-family: 'Fraunces', serif;
+    font-style: italic;
+    font-size: 18px;
+    color: var(--accent);
+  }
+  
+  .article-footer {
+    margin-top: 56px;
+    padding-top: 24px;
+    border-top: 1px solid var(--line);
+    text-align: center;
+  }
+  .source-note { font-size: 12px; color: var(--text-faint); line-height: 1.6; }
+  .footer-actions {
+    margin-top: 20px;
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .footer-btn {
+    padding: 10px 18px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--text-soft);
+    text-decoration: none;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .footer-btn:hover { border-color: var(--accent-soft); color: var(--accent); }
+  
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  
+  @media (max-width: 480px) {
+    .container { padding: 20px 16px 80px; }
+    .starter h1 { font-size: 36px; }
+    .article-header h1 { font-size: 28px; }
+    .article-header .en-title { font-size: 15px; }
+    .key-verse { font-size: 16px; }
+    .meditation-text { font-size: 15px; }
+    .insight-body { font-size: 14.5px; }
+    .reflect-q-text { font-size: 14.5px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <nav class="topnav">
+    <a href="journal.html" class="back-link">📓 기록</a>
+    <div style="display:flex;gap:14px;align-items:baseline;">
+      <span class="nav-streak" id="navStreak" style="font-size:11px;color:var(--accent);font-weight:500;display:none">
+        <span id="navStreakNum"></span>일 연속
+      </span>
+      <span class="nav-date" id="navDate"></span>
+    </div>
+  </nav>
+
+  <!-- 시작 화면 -->
+  <div class="starter" id="starterView">
+    <h1>Morning Devotion</h1>
+    <p class="subtitle">오늘의 묵상을 시작합니다</p>
+    
+    <!-- 묵상 기록 통계 -->
+    <div class="starter-stats" id="starterStats">
+      <div class="starter-stat">
+        <div class="starter-stat-num"><span id="statStreak">0</span><span class="starter-stat-unit">일</span></div>
+        <div class="starter-stat-label">연속</div>
+      </div>
+      <div class="starter-stat">
+        <div class="starter-stat-num"><span id="statTotal">0</span><span class="starter-stat-unit">일</span></div>
+        <div class="starter-stat-label">누적</div>
+      </div>
+      <div class="starter-stat">
+        <div class="starter-stat-num"><span id="statMonth">0</span><span class="starter-stat-unit">%</span></div>
+        <div class="starter-stat-label">이번 달</div>
+      </div>
+    </div>
+    
+    <div class="api-key-section" id="apiKeySection">
+      <div class="api-key-label">
+        <span>Anthropic API 키</span>
+        <button class="api-key-toggle" id="keyToggleBtn" style="display:none">변경</button>
+      </div>
+      <div id="keyInputArea">
+        <input type="password" class="api-key-input" id="apiKey" placeholder="sk-ant-...">
+        <button class="api-key-save" id="saveKeyBtn">저장</button>
+      </div>
+      <div class="key-status" id="keyStatus"></div>
+    </div>
+    
+    <button class="start-btn" id="startBtn">오늘의 묵상 시작</button>
+    
+    <p style="font-size: 11px; color: var(--text-faint); margin-top: 20px; line-height: 1.6;">
+      YMI에서 가장 최근 ODB 묵상을 가져와 한국어로 풀어드립니다.<br>
+      약 60-75초 정도 소요됩니다.
+    </p>
+  </div>
+
+  <div class="progress" id="progressView">
+    <div class="progress-step" id="step0">
+      <span class="progress-icon">○</span>
+      <span>YMI에서 최근 ODB 본문 찾는 중...</span>
+    </div>
+    <div class="progress-step" id="step1">
+      <span class="progress-icon">○</span>
+      <span>본문 가져오는 중...</span>
+    </div>
+    <div class="progress-step" id="step1b">
+      <span class="progress-icon">○</span>
+      <span>성경 본문 한글로 가져오는 중...</span>
+    </div>
+    <div class="progress-step" id="step2">
+      <span class="progress-icon">○</span>
+      <span>본문 분석 — 원어 필요 여부 판단 중...</span>
+    </div>
+    <div class="progress-step" id="step3">
+      <span class="progress-icon">○</span>
+      <span>원어 사전 데이터 확인 중...</span>
+    </div>
+    <div class="progress-step" id="step4">
+      <span class="progress-icon">○</span>
+      <span>한국어 묵상 생성 중...</span>
+    </div>
+  </div>
+
+  <div class="result" id="resultView">
+    <header class="article-header">
+      <div class="eyebrow">Our Daily Bread · Devotion</div>
+      <h1 id="resKoTitle">한국어 제목</h1>
+      <div class="en-title" id="resTitle">English Title</div>
+      <div class="header-meta">
+        <span id="resScripture">본문</span>
+        <span id="resAuthor">저자</span>
+      </div>
+    </header>
+
+    <section class="section">
+      <div class="section-label">
+        <span class="section-num">01</span>
+        <span class="section-title">본문</span>
+        <span class="section-tag">Scripture</span>
+      </div>
+      <div class="scripture-key">
+        <div class="scripture-key-label">Key Verse · 핵심 구절</div>
+        <p class="key-verse">
+          <span id="resKeyVerse"></span>
+          <span class="key-verse-ref" id="resKeyVerseRef"></span>
+        </p>
+      </div>
+      <div class="bible-passage" id="resBiblePassage" style="display:none">
+        <div class="bible-passage-header">
+          <span class="bible-passage-label" id="resBiblePassageLabel">성경 본문</span>
+          <span class="bible-passage-version">개역한글</span>
+        </div>
+        <div class="bible-passage-text" id="resBiblePassageText"></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-label">
+        <span class="section-num">02</span>
+        <span class="section-title">묵상 포인트</span>
+        <span class="section-tag">Today's Devotion</span>
+      </div>
+      <div class="meditation-point">
+        <div class="meditation-text" id="resMeditation"></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-label">
+        <span class="section-num">03</span>
+        <span class="section-title">인사이트 정리</span>
+        <span class="section-tag">Insight</span>
+      </div>
+      <div class="insight-card">
+        <div class="insight-card-title">
+          <span class="insight-card-num">1</span>
+          <span class="insight-card-label">내용 정리</span>
+        </div>
+        <div class="insight-body" id="resInsight1"></div>
+      </div>
+      <div class="insight-card">
+        <div class="insight-card-title">
+          <span class="insight-card-num">2</span>
+          <span class="insight-card-label">핵심 포인트</span>
+        </div>
+        <div class="insight-body" id="resInsight2"></div>
+      </div>
+      <div class="greek-verify" id="resGreekVerify" style="display:none"></div>
+    </section>
+
+    <section class="section">
+      <div class="section-label">
+        <span class="section-num">04</span>
+        <span class="section-title">더 생각해 볼 것</span>
+        <span class="section-tag">Active Reflection</span>
+      </div>
+      <div class="reflect-intro">
+        <strong>꺼내보고 다시 쓰기 ·</strong> 본문이 끝난 곳에서 시작되는 두 개의 질문입니다.
+      </div>
+      <div class="reflect-block">
+        <div class="reflect-question">
+          <span class="reflect-q-mark">Q1</span>
+          <span class="reflect-q-text" id="resQ1"></span>
+        </div>
+        <div class="reflect-answer-label">My Note</div>
+        <textarea class="reflect-textarea" id="answer1" placeholder="여기에 답을 적어보세요…"></textarea>
+        <div class="reflect-actions">
+          <button class="reflect-btn" id="saveAnswer1Btn">저장하고 AI 응답 받기</button>
+          <span class="reflect-saved" id="saved1">저장되었습니다 ✓</span>
+        </div>
+        <div class="ai-response" id="aiResponse1">
+          <div class="ai-response-header">
+            <span class="ai-badge">AI</span>
+            <span class="ai-response-title">한 번 더 생각해볼 점</span>
+          </div>
+          <div class="ai-response-body" id="aiBody1"></div>
+        </div>
+      </div>
+      <div class="reflect-block">
+        <div class="reflect-question">
+          <span class="reflect-q-mark">Q2</span>
+          <span class="reflect-q-text" id="resQ2"></span>
+        </div>
+        <div class="reflect-answer-label">My Note</div>
+        <textarea class="reflect-textarea" id="answer2" placeholder="여기에 답을 적어보세요…"></textarea>
+        <div class="reflect-actions">
+          <button class="reflect-btn" id="saveAnswer2Btn">저장하고 AI 응답 받기</button>
+          <span class="reflect-saved" id="saved2">저장되었습니다 ✓</span>
+        </div>
+        <div class="ai-response" id="aiResponse2">
+          <div class="ai-response-header">
+            <span class="ai-badge">AI</span>
+            <span class="ai-response-title">한 번 더 생각해볼 점</span>
+          </div>
+          <div class="ai-response-body" id="aiBody2"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-label">
+        <span class="section-num">05</span>
+        <span class="section-title">기도제목</span>
+        <span class="section-tag">Prayer</span>
+      </div>
+      <ol class="prayer-list" id="resPrayerList"></ol>
+      <p class="prayer-amen">— Amen —</p>
+    </section>
+
+    <footer class="article-footer">
+      <p class="source-note" id="resSource"></p>
+      <div class="footer-actions">
+        <button class="footer-btn" id="restartBtn">새 묵상 시작</button>
+        <a class="footer-btn" href="journal.html">묵상 기록</a>
+      </div>
+    </footer>
+  </div>
+
+</div>
+
+<script>
+const CLAUDE_MODEL = 'claude-sonnet-4-6';
+const API_URL = 'https://api.anthropic.com/v1/messages';
+
+let devotionData = null;
+
+const today = new Date();
+document.getElementById('navDate').textContent = 
+  `${today.getFullYear()}.${String(today.getMonth()+1).padStart(2,'0')}.${String(today.getDate()).padStart(2,'0')}`;
+
+// 연속 일수 + 통계 계산
+function formatDateKey(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function getRecordLevel(dateKey) {
+  if (localStorage.getItem(`devotion-engaged-${dateKey}`)) return 2;
+  if (localStorage.getItem(`devotion-opened-${dateKey}`)) return 1;
+  return 0;
+}
+
+function calculateStats() {
+  let total = 0;
+  let streak = 0;
+  let monthOpened = 0;
+  
+  // 누적 — localStorage 전체 검색
+  const recordedDates = new Set();
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    const match = k && k.match(/devotion-(opened|engaged)-(\d{4}-\d{2}-\d{2})/);
+    if (match) recordedDates.add(match[2]);
+  }
+  total = recordedDates.size;
+  
+  // 연속 — 오늘부터 거꾸로
+  const todayKey = formatDateKey(today);
+  let cur = new Date(today);
+  while (true) {
+    const key = formatDateKey(cur);
+    if (getRecordLevel(key) > 0) {
+      streak++;
+      cur.setDate(cur.getDate() - 1);
+    } else {
+      // 오늘 0이면 어제부터 시작 (오늘 아직 안 한 경우)
+      if (formatDateKey(cur) === todayKey && streak === 0) {
+        cur.setDate(cur.getDate() - 1);
+        continue;
+      }
+      break;
+    }
+  }
+  
+  // 이번 달 활동률
+  const year = today.getFullYear();
+  const month = today.getMonth();
+  const todayDate = today.getDate();
+  for (let d = 1; d <= todayDate; d++) {
+    const dt = new Date(year, month, d);
+    if (getRecordLevel(formatDateKey(dt)) > 0) monthOpened++;
+  }
+  const monthRate = todayDate > 0 ? Math.round((monthOpened / todayDate) * 100) : 0;
+  
+  return { total, streak, monthRate };
+}
+
+function showStats() {
+  const stats = calculateStats();
+  
+  // 시작 화면 통계
+  const statStreakEl = document.getElementById('statStreak');
+  const statTotalEl = document.getElementById('statTotal');
+  const statMonthEl = document.getElementById('statMonth');
+  if (statStreakEl) statStreakEl.textContent = stats.streak;
+  if (statTotalEl) statTotalEl.textContent = stats.total;
+  if (statMonthEl) statMonthEl.textContent = stats.monthRate;
+  
+  // 상단 네비 연속 일수 (묵상 결과 화면용)
+  if (stats.streak > 0) {
+    const navStreak = document.getElementById('navStreak');
+    if (navStreak) {
+      navStreak.style.display = 'inline';
+      document.getElementById('navStreakNum').textContent = stats.streak;
+    }
+  }
+}
+showStats();
+
+// API 키 관리
+function showKeySaved() {
+  document.getElementById('apiKeySection').classList.add('has-key');
+  document.getElementById('keyStatus').innerHTML = '<span class="ok">✓ API 키 저장됨</span>';
+  document.getElementById('keyInputArea').style.display = 'none';
+  document.getElementById('keyToggleBtn').style.display = 'inline';
+}
+
+function toggleKeyView() {
+  const area = document.getElementById('keyInputArea');
+  if (area.style.display === 'none') {
+    area.style.display = 'block';
+    document.getElementById('keyToggleBtn').textContent = '취소';
+  } else {
+    area.style.display = 'none';
+    document.getElementById('keyToggleBtn').textContent = '변경';
+  }
+}
+
+function saveKey() {
+  const key = document.getElementById('apiKey').value.trim();
+  if (!key) {
+    document.getElementById('keyStatus').innerHTML = '<span class="err">키를 입력해주세요</span>';
+    return;
+  }
+  if (!key.startsWith('sk-ant-')) {
+    document.getElementById('keyStatus').innerHTML = '<span class="err">올바른 형식이 아닙니다</span>';
+    return;
+  }
+  localStorage.setItem('anthropic_api_key', key);
+  document.getElementById('keyStatus').innerHTML = '<span class="ok">✓ 저장 완료!</span>';
+  setTimeout(() => showKeySaved(), 800);
+}
+
+// API 키 초기화 — 함수 정의 후 즉시 실행 (Safari 호환)
+(function initApiKey() {
+  const saved = localStorage.getItem('anthropic_api_key');
+  if (saved) {
+    const el = document.getElementById('apiKey');
+    if (el) {
+      el.value = saved;
+      showKeySaved();
+    }
+  }
+})();
+
+// 진행 상태
+function setStepStatus(stepNum, status, customText) {
+  const step = document.getElementById('step' + stepNum);
+  if (!step) return;
+  const icon = step.querySelector('.progress-icon');
+  const text = step.querySelector('span:last-child');
+  step.classList.remove('active', 'done', 'error');
+  if (status) step.classList.add(status);
+  if (status === 'active') icon.textContent = '⏳';
+  else if (status === 'done') icon.textContent = '✓';
+  else if (status === 'error') icon.textContent = '✗';
+  else icon.textContent = '○';
+  if (customText) text.textContent = customText;
+}
+
+// Claude API 공통 호출
+async function callClaude(messages, options = {}) {
+  const key = localStorage.getItem('anthropic_api_key');
+  if (!key) throw new Error('API 키가 없습니다');
+  
+  const body = {
+    model: CLAUDE_MODEL,
+    max_tokens: options.maxTokens || 4000,
+    messages: messages
+  };
+  if (options.tools) body.tools = options.tools;
+  
+  const headers = {
+    'Content-Type': 'application/json',
+    'x-api-key': key,
+    'anthropic-version': '2023-06-01',
+    'anthropic-dangerous-direct-browser-access': 'true'
+  };
+  if (options.tools) headers['anthropic-beta'] = 'web-fetch-2025-09-10';
+  
+  const response = await fetch(API_URL, {
+    method: 'POST',
+    headers: headers,
+    body: JSON.stringify(body)
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`HTTP ${response.status}: ${errorText.slice(0, 300)}`);
+  }
+  
+  const data = await response.json();
+  const textBlocks = data.content.filter(b => b.type === 'text');
+  return textBlocks.map(b => b.text).join('');
+}
+
+function parseJSON(text) {
+  let clean = text.trim();
+  // 코드 블록 마크다운 제거
+  clean = clean.replace(/^```json\s*/i, '').replace(/```\s*$/i, '');
+  clean = clean.replace(/^```\s*/i, '').replace(/```\s*$/i, '');
+  clean = clean.trim();
+  
+  // JSON 객체/배열의 시작과 끝만 추출 (앞뒤 잡설 제거)
+  const firstBrace = clean.search(/[{\[]/);
+  if (firstBrace === -1) throw new Error('JSON 시작 문자를 찾을 수 없습니다');
+  
+  const isArray = clean[firstBrace] === '[';
+  const openChar = isArray ? '[' : '{';
+  const closeChar = isArray ? ']' : '}';
+  
+  // 마지막 닫는 괄호 찾기
+  const lastClose = clean.lastIndexOf(closeChar);
+  if (lastClose === -1) {
+    throw new Error(`JSON이 닫히지 않았습니다 (${closeChar} 누락). 응답이 잘렸을 수 있습니다.`);
+  }
+  
+  clean = clean.slice(firstBrace, lastClose + 1);
+  
+  try {
+    return JSON.parse(clean);
+  } catch (e) {
+    // 디버그 정보 포함
+    const preview = clean.length > 200 ? clean.slice(0, 100) + '...' + clean.slice(-100) : clean;
+    throw new Error(`JSON 파싱 실패: ${e.message}\n응답 일부: ${preview}`);
+  }
+}
+
+// Step 0: YMI 카테고리에서 최근 ODB 글 URL 자동 찾기
+async function findRecentYMIUrl() {
+  const prompt = `다음 YMI ODB 카테고리 페이지에서 가장 최근 ODB 묵상 글 1개의 정확한 URL을 찾아주세요:
+https://ymi.today/category/devotional/our-daily-bread/
+
+페이지 상단 가장 첫 번째 글의 링크입니다.
+
+오직 JSON만 반환:
+{
+  "url": "https://ymi.today/2026/MM/odb-... 형식의 완전한 URL",
+  "title": "발견한 글의 제목"
+}
+
+코드 블록 마크다운 사용 금지. 응답은 { 로 시작.`;
+  
+  const text = await callClaude([{ role: 'user', content: prompt }], {
+    tools: [{
+      type: 'web_fetch_20250910',
+      name: 'web_fetch',
+      max_uses: 1,
+      allowed_domains: ['ymi.today']
+    }],
+    maxTokens: 1000
+  });
+  return parseJSON(text);
+}
+
+// Step 1b: 로컬 bible-krv.json에서 개역개정 성경 본문 가져오기
+let _bibleData = null;
+async function loadBible() {
+  if (_bibleData) return _bibleData;
+  const res = await fetch('bible-krv.json');
+  _bibleData = await res.json();
+  return _bibleData;
+}
+
+// 영문 책 이름 → 한국어 약어
+const BOOK_EN_TO_KO = {
+  'genesis':'창','exodus':'출','leviticus':'레','numbers':'민','deuteronomy':'신',
+  'joshua':'수','judges':'삿','ruth':'룻','1samuel':'삼상','2samuel':'삼하',
+  '1kings':'왕상','2kings':'왕하','1chronicles':'대상','2chronicles':'대하',
+  'ezra':'스','nehemiah':'느','esther':'에','job':'욥','psalms':'시','psalm':'시',
+  'proverbs':'잠','ecclesiastes':'전','songofsolomon':'아','songofsongsofsolomon':'아',
+  'isaiah':'사','jeremiah':'렘','lamentations':'애','ezekiel':'겔','daniel':'단',
+  'hosea':'호','joel':'욜','amos':'암','obadiah':'옵','jonah':'욘','micah':'미',
+  'nahum':'나','habakkuk':'합','zephaniah':'습','haggai':'학','zechariah':'슥','malachi':'말',
+  'matthew':'마','mark':'막','luke':'눅','john':'요','acts':'행',
+  'romans':'롬','1corinthians':'고전','2corinthians':'고후','galatians':'갈',
+  'ephesians':'엡','philippians':'빌','colossians':'골',
+  '1thessalonians':'살전','2thessalonians':'살후',
+  '1timothy':'딤전','2timothy':'딤후','titus':'딛','philemon':'몬',
+  'hebrews':'히','james':'약','1peter':'벧전','2peter':'벧후',
+  '1john':'요일','2john':'요이','3john':'요삼','jude':'유','revelation':'계'
+};
+
+const BOOK_KO_FULL = {
+  '창':'창세기','출':'출애굽기','레':'레위기','민':'민수기','신':'신명기',
+  '수':'여호수아','삿':'사사기','룻':'룻기','삼상':'사무엘상','삼하':'사무엘하',
+  '왕상':'열왕기상','왕하':'열왕기하','대상':'역대상','대하':'역대하',
+  '스':'에스라','느':'느헤미야','에':'에스더','욥':'욥기','시':'시편','잠':'잠언',
+  '전':'전도서','아':'아가','사':'이사야','렘':'예레미야','애':'예레미야애가',
+  '겔':'에스겔','단':'다니엘','호':'호세아','욜':'요엘','암':'아모스',
+  '옵':'오바댜','욘':'요나','미':'미가','나':'나훔','합':'하박국',
+  '습':'스바냐','학':'학개','슥':'스가랴','말':'말라기',
+  '마':'마태복음','막':'마가복음','눅':'누가복음','요':'요한복음','행':'사도행전',
+  '롬':'로마서','고전':'고린도전서','고후':'고린도후서','갈':'갈라디아서',
+  '엡':'에베소서','빌':'빌립보서','골':'골로새서',
+  '살전':'데살로니가전서','살후':'데살로니가후서',
+  '딤전':'디모데전서','딤후':'디모데후서','딛':'디도서','몬':'빌레몬서',
+  '히':'히브리서','약':'야고보서','벧전':'베드로전서','벧후':'베드로후서',
+  '요일':'요한일서','요이':'요한이서','요삼':'요한삼서','유':'유다서','계':'요한계시록'
+};
+
+// 영문 구절 범위 → 절 키 배열 (예: "Luke 8:4-8, 11-15" → ["눅8:4","눅8:5",...])
+function parseVerseRange(scriptureRef) {
+  const bookMatch = scriptureRef.match(/^([\w\s]+?)\s+(\d+):(.+)/);
+  if (!bookMatch) return null;
+  
+  const bookRaw = bookMatch[1].toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, '');
+  const chapter = bookMatch[2];
+  const versesPart = bookMatch[3];
+  
+  const abbr = BOOK_EN_TO_KO[bookRaw] || null;
+  if (!abbr) return null;
+  
+  // 절 범위 파싱 ("4-8, 11-15" → [4,5,6,7,8,11,12,13,14,15])
+  const verseNums = [];
+  const segments = versesPart.split(',');
+  for (const seg of segments) {
+    const range = seg.trim().match(/^(\d+)(?:-(\d+))?/);
+    if (!range) continue;
+    const from = parseInt(range[1]);
+    const to = range[2] ? parseInt(range[2]) : from;
+    for (let v = from; v <= to; v++) verseNums.push(v);
+  }
+  
+  return { abbr, chapter, verseNums, bookFull: BOOK_KO_FULL[abbr] || abbr };
+}
+
+async function fetchBiblePassage(scriptureRef) {
+  const bible = await loadBible();
+  const parsed = parseVerseRange(scriptureRef);
+  
+  if (!parsed) {
+    throw new Error(`성경 구절 파싱 실패: ${scriptureRef}`);
+  }
+  
+  const { abbr, chapter, verseNums, bookFull } = parsed;
+  const verses = [];
+  
+  for (const v of verseNums) {
+    const key = `${abbr}${chapter}:${v}`;
+    const text = bible[key];
+    if (text) {
+      verses.push({ num: String(v), text: text.trim() });
+    }
+  }
+  
+  if (verses.length === 0) {
+    throw new Error(`구절을 찾을 수 없습니다: ${scriptureRef}`);
+  }
+  
+  return { book_ko: bookFull, verses };
+}
+
+// Step 1: YMI 본문
+async function fetchYMI(url) {
+  const prompt = `다음 YMI 페이지에서 ODB 묵상 본문을 추출해서 JSON으로 반환하세요:
+${url}
+
+형식 (반드시 다음 키만, 정확히):
+{
+  "title": "영문 제목 (ODB: 부분 제외)",
+  "date": "발행일 (예: May 14, 2026)",
+  "scripture_ref": "본문 범위 (예: Luke 8:4-8, 11-15)",
+  "key_verse": "핵심 구절 영문 (인용부호 없이 본문만)",
+  "key_verse_ref": "핵심 구절 출처 (예: Luke 8:8)",
+  "message_body": "본문 메시지 전체. 단락 사이는 슬래시n슬래시n 같은 escape 없이 그냥 공백 한 칸으로 연결. JSON 문자열 안에 줄바꿈 넣지 마세요.",
+  "author": "저자명",
+  "reflection_question": "묵상 질문 영문",
+  "prayer": "짧은 기도 영문"
+}
+
+중요:
+1. 오직 JSON 객체만 반환. 다른 설명, 주석, 코드 블록 마크다운(\`\`\`) 사용 금지.
+2. JSON 문자열 안에는 실제 줄바꿈 문자 넣지 마세요. 모든 단락을 한 줄로 연결하되 단락 사이를 공백 한 칸으로 구분.
+3. 인용부호는 모두 큰따옴표 안에 들어가는 작은따옴표나 일반 따옴표로. 큰따옴표는 escape 처리 안 되어 있으면 빼주세요.
+4. 응답은 { 로 시작해서 } 로 끝나야 합니다.`;
+  
+  const text = await callClaude([{ role: 'user', content: prompt }], {
+    tools: [{
+      type: 'web_fetch_20250910',
+      name: 'web_fetch',
+      max_uses: 1,
+      allowed_domains: ['ymi.today']
+    }],
+    maxTokens: 8000
+  });
+  return parseJSON(text);
+}
+
+// Step 2: 원어 필요 판단
+async function analyzeKeyword(devo) {
+  const prompt = `다음 ODB 본문을 분석해서, 한국어 묵상 작성 시 원어(헬라어/히브리어) 인용이 깊이의 핵심이 될지 판단하세요.
+
+본문 제목: ${devo.title}
+성경 본문: ${devo.scripture_ref}
+핵심 구절: "${devo.key_verse}" (${devo.key_verse_ref})
+본문 메시지:
+${devo.message_body}
+
+판단 기준:
+- 비유, 이야기, 역사적 사례 중심 본문 → 원어 보통 불필요 (need_greek: false)
+- 핵심 단어의 어원적 의미가 통찰의 핵심인 개념/권면 본문 → 원어 필요 (need_greek: true)
+
+원어가 필요하다고 판단되면, 어느 절의 어느 영문 단어가 핵심인지 함께 알려주세요. 
+
+오직 JSON만 반환:
+{
+  "need_greek": true 또는 false,
+  "reason": "판단 근거 한 줄",
+  "target_verse": "원어 조회할 구절 (예: Luke 8:15)",
+  "target_english_word": "핵심 영문 단어 (예: perseverance)"
+}
+
+코드 블록 마크다운 사용 금지.`;
+  
+  const text = await callClaude([{ role: 'user', content: prompt }], {
+    maxTokens: 500
+  });
+  return parseJSON(text);
+}
+
+// Step 3: Bible Hub 원어 (조건부)
+async function fetchGreek(targetVerse, targetEnglishWord) {
+  const match = targetVerse.match(/^([\w\s]+?)\s+(\d+):(\d+)/);
+  if (!match) throw new Error(`구절 형식 오류: ${targetVerse}`);
+  
+  const book = match[1].toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+  const chapter = match[2];
+  const verse = match[3];
+  const url = `https://biblehub.com/interlinear/${book}/${chapter}-${verse}.htm`;
+  
+  const prompt = `Bible Hub 인터리니어 페이지에서 원어 데이터를 가져오세요:
+${url}
+
+이 구절의 영문 단어 중 "${targetEnglishWord}"에 해당하는 헬라어/히브리어 단어 1개의 정보를 추출하세요.
+
+오직 JSON만:
+{
+  "found": true 또는 false,
+  "greek": "원어 단어 (유니코드)",
+  "transliteration": "로마자 표기",
+  "strong_number": "Strong's 번호 (예: G5281)",
+  "part_of_speech": "품사와 격",
+  "english_gloss": "영문 의미",
+  "definition": "Strong's 사전 정의 (50자 이내)",
+  "etymology_root": "어원 (있을 경우)"
+}
+
+코드 블록 마크다운 금지.`;
+  
+  const text = await callClaude([{ role: 'user', content: prompt }], {
+    tools: [{
+      type: 'web_fetch_20250910',
+      name: 'web_fetch',
+      max_uses: 1,
+      allowed_domains: ['biblehub.com']
+    }],
+    maxTokens: 800
+  });
+  return parseJSON(text);
+}
+
+// Step 4: 한국어 5단 구조
+async function generateKoreanDevotion(devo, greekData, keyVerseKo) {
+  let greekSection = '';
+  if (greekData && greekData.found) {
+    greekSection = `
+
+[검증된 원어 사전 데이터 — 이 정보만 사용해서 원어 인용. 사전에 없는 어원 분석, 의미 확장은 절대 만들지 마세요.]
+- 원어: ${greekData.greek}
+- 로마자: ${greekData.transliteration}
+- Strong's: ${greekData.strong_number}
+- 품사: ${greekData.part_of_speech}
+- 영문 의미: ${greekData.english_gloss}
+- Strong's 정의: ${greekData.definition}
+${greekData.etymology_root ? '- 어원 구성: ' + greekData.etymology_root : ''}
+
+이 원어 인용은 ③ 인사이트 1번 또는 2번에 자연스럽게 녹여내세요.`;
+  } else {
+    greekSection = `
+
+[원어 데이터 없음 — 원어/헬라어/히브리어 인용을 절대 만들지 마세요. 환각 위험이 있습니다.]`;
+  }
+  
+  const prompt = `ODB 본문을 한국어 QT 묵상으로 변환합니다.
+
+[ODB 본문]
+제목: ${devo.title}
+성경 본문: ${devo.scripture_ref}
+핵심 구절: "${devo.key_verse}" (${devo.key_verse_ref})
+저자: ${devo.author}
+
+본문 메시지:
+${devo.message_body}
+
+ODB 묵상 질문 (참고): ${devo.reflection_question}
+ODB 기도 (참고): ${devo.prayer}
+${greekSection}
+
+[작성 지침]
+
+JSON 형식으로 한국어 5단 구조 묵상 작성:
+
+{
+  "title_ko": "한국어 제목 (간결하게, 영문 제목의 결을 살려서)",
+  "key_verse_ko": "핵심 구절 (위에 제공된 개역개정 그대로 사용)",
+  "meditation": "묵상 포인트 (3-4 단락). 저자의 이야기/사례 살려서. <p>로 단락. 강조는 <em>로.",
+  "insight_1": "인사이트 1번: 내용 정리 (2-3 단락). 본문이 통상 읽기에 가린 깊이. <p>, <strong>.",
+  "insight_2": "인사이트 2번: 핵심 포인트 (1-2 단락). 인사이트 1을 받아 압축. <p>, <strong>.",
+  "reflection_q1": "Q1 - 본문이 끝난 곳에서 시작되는 질문. 추상 금지. <strong>.",
+  "reflection_q2": "Q2 - Q1과 다른 결의 질문.",
+  "prayer_1": "기도제목 1 - 본문의 통찰을 적용. <strong>.",
+  "prayer_2": "기도제목 2",
+  "prayer_3": "기도제목 3"
+}
+
+[톤 기준]
+- 가벼운 QT 톤
+- "~합니다" 정중체
+- 일상/관계 중심 구체적
+- 본문이 이미 답한 것 되묻기 금지
+- 다른 책/인물 인용 금지
+- 원어 데이터가 있으면 자연스럽게 녹여내고, 없으면 원어 인용 절대 금지
+
+오직 JSON만. 코드 블록 마크다운 금지.`;
+  
+  const text = await callClaude([{ role: 'user', content: prompt }], {
+    maxTokens: 5000
+  });
+  return parseJSON(text);
+}
+
+// 메인 워크플로
+async function startDevotion() {
+  const key = localStorage.getItem('anthropic_api_key');
+  if (!key) {
+    document.getElementById('keyStatus').innerHTML = '<span class="err">API 키를 먼저 저장해주세요</span>';
+    return;
+  }
+  
+  document.getElementById('starterView').style.display = 'none';
+  document.getElementById('progressView').classList.add('show');
+  
+  ['0', '1', '1b', '2', '3', '4'].forEach(i => setStepStatus(i, ''));
+  
+  let url, devo, biblePassage, analysis, greek;
+  
+  try {
+    // Step 0: 최근 글 URL 자동 찾기
+    setStepStatus('0', 'active');
+    const recent = await findRecentYMIUrl();
+    url = recent.url;
+    setStepStatus('0', 'done', `최근 글: ${recent.title}`);
+    
+    // Step 1: 본문 추출
+    setStepStatus('1', 'active');
+    devo = await fetchYMI(url);
+    setStepStatus('1', 'done', `본문: ${devo.title}`);
+    
+    // Step 1b: 한국어 성경 본문 (graceful degradation)
+    biblePassage = null;
+    setStepStatus('1b', 'active');
+    try {
+      biblePassage = await fetchBiblePassage(devo.scripture_ref);
+      setStepStatus('1b', 'done', `${biblePassage.book_ko} ${biblePassage.verses.length}절 확보`);
+    } catch (e) {
+      setStepStatus('1b', 'error', '성경 본문 못 가져옴, 핵심 구절만 표시');
+      biblePassage = null;
+    }
+    
+    // Step 2
+    setStepStatus('2', 'active');
+    analysis = await analyzeKeyword(devo);
+    setStepStatus('2', 'done', 
+      analysis.need_greek 
+        ? `원어 필요 — ${analysis.target_english_word}`
+        : `원어 불필요 (${analysis.reason})`
+    );
+    
+    // Step 3 (조건부 + graceful degradation)
+    greek = null;
+    if (analysis.need_greek) {
+      setStepStatus('3', 'active');
+      try {
+        greek = await fetchGreek(analysis.target_verse, analysis.target_english_word);
+        if (greek.found) {
+          setStepStatus('3', 'done', `${greek.greek} (${greek.transliteration}) 확보`);
+        } else {
+          setStepStatus('3', 'error', '원어 못 찾음, 원어 없이 진행');
+          greek = null;
+        }
+      } catch (e) {
+        setStepStatus('3', 'error', '원어 가져오기 실패, 원어 없이 진행');
+        greek = null;
+      }
+    } else {
+      setStepStatus('3', 'done', '원어 단계 건너뜀');
+    }
+    
+    // Step 4
+    setStepStatus('4', 'active');
+    // 핵심 구절 개역개정 로컬 조회
+    let keyVerseKo = '';
+    try {
+      const bible = await loadBible();
+      const parsed = parseVerseRange(devo.key_verse_ref);
+      if (parsed && parsed.verseNums.length > 0) {
+        const key = `${parsed.abbr}${parsed.chapter}:${parsed.verseNums[0]}`;
+        keyVerseKo = bible[key] ? bible[key].trim() : '';
+      }
+    } catch(e) { keyVerseKo = ''; }
+    
+    const ko = await generateKoreanDevotion(devo, greek, keyVerseKo);
+    setStepStatus('4', 'done', '완료!');
+    
+    if (keyVerseKo) ko.key_verse_ko = keyVerseKo;
+    renderResult(devo, biblePassage, analysis, greek, ko);
+    devotionData = { devo, biblePassage, analysis, greek, ko, url };
+    
+  } catch (err) {
+    alert(`오류가 발생했습니다:\n\n${err.message}\n\n다시 시도해주세요.`);
+    document.getElementById('progressView').classList.remove('show');
+    document.getElementById('starterView').style.display = 'block';
+  }
+}
+
+function renderResult(devo, biblePassage, analysis, greek, ko) {
+  // 등급 1: 명상 페이지 열림 (생성 완료 시점)
+  const dateKey = today.toISOString().slice(0, 10);
+  localStorage.setItem(`devotion-opened-${dateKey}`, '1');
+  
+  // 묵상 일기장 데이터 — 그날의 모든 묵상 정보를 한 덩어리로
+  const journalEntry = {
+    date: dateKey,
+    date_display: devo.date,  // "May 14, 2026"
+    title_en: devo.title,
+    title_ko: ko.title_ko,
+    author: devo.author,
+    scripture_ref: devo.scripture_ref,
+    key_verse_en: devo.key_verse,
+    key_verse_ref: devo.key_verse_ref,
+    key_verse_ko: ko.key_verse_ko,
+    bible_passage: biblePassage,  // {book_ko, verses: [...]}
+    meditation: ko.meditation,
+    insight_1: ko.insight_1,
+    insight_2: ko.insight_2,
+    greek: greek,  // null이거나 {greek, transliteration, strong_number, ...}
+    question_1: ko.reflection_q1,
+    question_2: ko.reflection_q2,
+    prayer_1: ko.prayer_1,
+    prayer_2: ko.prayer_2,
+    prayer_3: ko.prayer_3,
+    answer_1: '',  // 답은 나중에 채워짐
+    answer_2: '',
+    ai_response_1: '',
+    ai_response_2: '',
+    source_url: devotionData?.url || ''
+  };
+  localStorage.setItem(`devotion-data-${dateKey}`, JSON.stringify(journalEntry));
+  
+  setTimeout(() => {
+    document.getElementById('progressView').classList.remove('show');
+    document.getElementById('resultView').classList.add('show');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, 600);
+  
+  document.getElementById('resTitle').textContent = devo.title;
+  document.getElementById('resKoTitle').textContent = ko.title_ko;
+  document.getElementById('resScripture').textContent = `본문 · ${devo.scripture_ref}`;
+  document.getElementById('resAuthor').textContent = `저자 · ${devo.author}`;
+  
+  document.getElementById('resKeyVerse').textContent = `"${ko.key_verse_ko}"`;
+  document.getElementById('resKeyVerseRef').textContent = `— ${devo.key_verse_ref}`;
+  
+  // 성경 본문 렌더링 (있을 경우)
+  if (biblePassage && biblePassage.verses && biblePassage.verses.length > 0) {
+    const passageEl = document.getElementById('resBiblePassage');
+    passageEl.style.display = 'block';
+    
+    // 라벨에 본문 책 + 범위
+    document.getElementById('resBiblePassageLabel').textContent = 
+      `${biblePassage.book_ko} ${devo.scripture_ref.split(' ').slice(1).join(' ')}`;
+    
+    // 핵심 구절 번호 찾기 (key_verse_ref에서)
+    let keyVerseNum = null;
+    const refMatch = devo.key_verse_ref.match(/(\d+):(\d+)/);
+    if (refMatch) keyVerseNum = refMatch[2];
+    
+    // 절 렌더링
+    const textEl = document.getElementById('resBiblePassageText');
+    textEl.innerHTML = biblePassage.verses.map(v => {
+      const isKey = v.num === keyVerseNum;
+      const verseHtml = `<span class="verse-block${isKey ? '' : ''}"><span class="verse-num">${v.num}</span>${isKey ? `<span class="key-highlight">${v.text}</span>` : v.text}</span>`;
+      return verseHtml;
+    }).join('');
+  }
+  
+  document.getElementById('resMeditation').innerHTML = ko.meditation;
+  document.getElementById('resInsight1').innerHTML = ko.insight_1;
+  document.getElementById('resInsight2').innerHTML = ko.insight_2;
+  
+  if (greek && greek.found) {
+    const verifyEl = document.getElementById('resGreekVerify');
+    verifyEl.style.display = 'block';
+    const strongNum = greek.strong_number.replace('G','').replace('H','');
+    verifyEl.innerHTML = `🔍 <strong>원어 검증</strong> · ${greek.greek} (${greek.transliteration}) · Strong's ${greek.strong_number} · ${greek.part_of_speech} · 출처: <a href="https://biblehub.com/greek/strongs_${strongNum}.htm" target="_blank">Bible Hub Strong's Concordance</a>`;
+  }
+  
+  document.getElementById('resQ1').innerHTML = ko.reflection_q1;
+  document.getElementById('resQ2').innerHTML = ko.reflection_q2;
+  
+  const prayerList = document.getElementById('resPrayerList');
+  prayerList.innerHTML = '';
+  ['prayer_1', 'prayer_2', 'prayer_3'].forEach((key, idx) => {
+    const li = document.createElement('li');
+    li.className = 'prayer-item';
+    li.innerHTML = `
+      <span class="prayer-num">${['i','ii','iii'][idx]}.</span>
+      <span>${ko[key]}</span>
+    `;
+    prayerList.appendChild(li);
+  });
+  
+  document.getElementById('resSource').innerHTML = 
+    `Original devotion by ${devo.author}<br>Our Daily Bread Ministries · ${devo.date}`;
+  
+  for (let i = 1; i <= 2; i++) {
+    const saved = localStorage.getItem(`devotion-${dateKey}-q${i}`);
+    if (saved) document.getElementById('answer' + i).value = saved;
+  }
+}
+
+async function saveAnswer(qNum) {
+  const textarea = document.getElementById('answer' + qNum);
+  const answer = textarea.value.trim();
+  if (!answer) {
+    textarea.focus();
+    return;
+  }
+  
+  const dateKey = today.toISOString().slice(0, 10);
+  localStorage.setItem(`devotion-${dateKey}-q${qNum}`, answer);
+  // 등급 2: 답 작성 (한 번이라도 적으면 표시)
+  localStorage.setItem(`devotion-engaged-${dateKey}`, '1');
+  
+  // 일기장 데이터에도 답 저장
+  try {
+    const journalData = JSON.parse(localStorage.getItem(`devotion-data-${dateKey}`) || '{}');
+    journalData[`answer_${qNum}`] = answer;
+    localStorage.setItem(`devotion-data-${dateKey}`, JSON.stringify(journalData));
+  } catch (e) {}
+  
+  const savedEl = document.getElementById('saved' + qNum);
+  savedEl.classList.add('show');
+  setTimeout(() => savedEl.classList.remove('show'), 2000);
+  
+  if (!devotionData) {
+    alert('묵상이 먼저 생성되어야 합니다.');
+    return;
+  }
+  
+  const aiResp = document.getElementById('aiResponse' + qNum);
+  const aiBody = document.getElementById('aiBody' + qNum);
+  aiResp.classList.add('show');
+  aiBody.innerHTML = '<p style="color:#908d83;font-style:italic">응답 생성 중...</p>';
+  
+  const question = qNum === 1 ? devotionData.ko.reflection_q1 : devotionData.ko.reflection_q2;
+  
+  const prompt = `오늘 ODB 묵상 질문에 사용자가 답을 적었습니다. 그 답에 한 걸음 더 들어가는 응답을 작성해주세요.
+
+[오늘의 묵상]
+${devotionData.devo.title} (${devotionData.devo.scripture_ref})
+
+[질문]
+${question.replace(/<[^>]+>/g, '')}
+
+[사용자의 답]
+${answer}
+
+[응답 지침]
+- 2-3 단락
+- 칭찬조 금지
+- 답에서 미처 보지 못한 한 각도, 또는 답을 한 걸음 더 정직하게 만드는 시험지를 건네기
+- 추상 금지
+- "~입니다" 정중체
+- <p>로 단락, <strong>로 강조
+
+오직 응답 HTML만.`;
+  
+  try {
+    const text = await callClaude([{ role: 'user', content: prompt }], {
+      maxTokens: 1500
+    });
+    aiBody.innerHTML = text;
+    localStorage.setItem(`devotion-${dateKey}-ai${qNum}`, text);
+    
+    // 일기장 데이터에도 AI 응답 저장
+    try {
+      const journalData = JSON.parse(localStorage.getItem(`devotion-data-${dateKey}`) || '{}');
+      journalData[`ai_response_${qNum}`] = text;
+      localStorage.setItem(`devotion-data-${dateKey}`, JSON.stringify(journalData));
+    } catch (e) {}
+  } catch (err) {
+    aiBody.innerHTML = `<p style="color:#b8612c">응답 생성 실패: ${err.message}</p>`;
+  }
+}
+
+function restart() {
+  if (!confirm('지금 묵상을 닫고 새로 시작할까요?')) return;
+  document.getElementById('resultView').classList.remove('show');
+  document.getElementById('starterView').style.display = 'block';
+  devotionData = null;
+}
+
+// ── 이벤트 리스너 (onclick 대신) ──────────────────────
+document.getElementById('saveKeyBtn').addEventListener('click', saveKey);
+document.getElementById('keyToggleBtn').addEventListener('click', toggleKeyView);
+document.getElementById('startBtn').addEventListener('click', startDevotion);
+document.getElementById('restartBtn').addEventListener('click', restart);
+document.getElementById('saveAnswer1Btn').addEventListener('click', function(){ saveAnswer(1); });
+document.getElementById('saveAnswer2Btn').addEventListener('click', function(){ saveAnswer(2); });
+</script>
+
+</body>
+</html>

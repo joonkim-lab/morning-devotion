@@ -1495,24 +1495,23 @@ async function loadExegete(dateKey) {
   if (!d || !Array.isArray(d.candidates) || !d.candidates.length) return;
 
   const esc = t => String(t || '').replace(/&/g,'&amp;').replace(/</g,'&lt;');
-  const html = d.candidates.map((c, i) => {
-    const books = (c.books || []).map(b => `${esc(b.book)} ${b.n}`).join(' · ');
-    const refs = (c.refs || []).map(r =>
-      `<div style="margin:6px 0;line-height:1.7"><span style="color:var(--accent2);font-weight:600;font-size:12px">${esc(r.ref)}</span><br>${esc(r.text)}</div>`
-    ).join('');
-    const head = `
-      <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">
-        <span style="font-size:22px;font-weight:700">${esc(c.lemma)}</span>
-        <span style="color:var(--text2)">${esc(c.gloss)}</span>
-        <span style="font-size:12px;color:var(--text2)">${esc(c.strong)} · 성경 전체 ${c.total}회${c.in_key_verse ? ' · 핵심구절' : ''}</span>
-      </div>
-      <div style="font-size:12px;color:var(--text2);margin-top:4px">${esc(c.in_verse)}에서 「${esc(c.surface)}」 · ${books}</div>`;
-    const inner = `${head}<div style="margin-top:10px;border-left:3px solid var(--line);padding-left:12px">${refs}</div>`;
-    return i === 0
-      ? `<div class="insight-item">${inner}</div>`
-      : `<details style="margin-top:12px"><summary style="cursor:pointer;color:var(--accent2)">후보 ${i+1}: ${esc(c.lemma)} (${esc(c.gloss)})</summary><div style="margin-top:8px">${inner}</div></details>`;
-  }).join('');
-  body.innerHTML = html + `<div style="margin-top:12px;font-size:11px;color:var(--text2)">원어 데이터: STEPBible TAGNT/TAHOT (CC BY 4.0) · 본문 ${esc(d.scripture_ko || d.scripture_ref)}</div>`;
+  const c = d.candidates[0];
+  const books = (c.books || []).map(b => `${esc(b.book)} ${b.n}`).join(' · ');
+  const refs = (c.refs || []).map(r =>
+    `<div style="margin:6px 0;line-height:1.7"><span style="color:var(--accent2);font-weight:600;font-size:12px">${esc(r.ref)}</span><br>${esc(r.text)}</div>`
+  ).join('');
+  const head = `
+    <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
+      <span style="font-size:24px;font-weight:700">${esc(c.lemma)}</span>
+      <span style="font-size:20px;font-weight:700;color:var(--accent2)">${esc(c.translit)}</span>
+      <span style="color:var(--text2)">${esc(c.gloss)}</span>
+    </div>
+    <div style="font-size:12px;color:var(--text2);margin-top:4px">${esc(c.in_verse)}에서 「${esc(c.surface)}」 · 성경 전체 ${c.total}회 · ${books}</div>`;
+  const insight = d.insight
+    ? `<div class="meditation-text" style="margin-top:14px;line-height:1.85">${esc(d.insight)}</div>`
+    : '';
+  const more = `<details style="margin-top:12px"><summary style="cursor:pointer;color:var(--accent2)">이 단어가 지나는 구절 ${(c.refs||[]).length}개</summary><div style="margin-top:8px;border-left:3px solid var(--line);padding-left:12px">${refs}</div></details>`;
+  body.innerHTML = head + insight + more + `<div style="margin-top:12px;font-size:11px;color:var(--text2)">원어 데이터: STEPBible TAGNT/TAHOT (CC BY 4.0) · 음역은 근사 표기</div>`;
   card.style.display = 'block';
 }
 

@@ -424,6 +424,16 @@ html, body {
       </div>
     </div>
 
+    <!-- exegete: 오늘의 단어 (exegete/YYYY-MM-DD.json 이 있을 때만 표시) -->
+    <div class="section-card" id="resExegeteCard" style="display:none">
+      <div class="section-header">
+        <span class="section-num">✦</span>
+        <span class="section-title">오늘의 단어</span>
+        <span class="section-tag">Exegete</span>
+      </div>
+      <div class="section-body" id="resExegeteBody"></div>
+    </div>
+
     <div class="section-card">
       <div class="section-header">
         <span class="section-num">04</span>
@@ -1469,6 +1479,44 @@ async function startDevotion(targetDate) {
 }
 
 // ─────────────────────────────────────────────────────────
+// exegete: 오늘의 단어 — 맥미니가 미리 만들어 둔 정적 JSON 하나만 읽는다.
+// 파일이 없으면(404) 아무것도 안 하고 조용히 넘어간다. API 호출 없음.
+// ─────────────────────────────────────────────────────────
+async function loadExegete(dateKey) {
+  const card = document.getElementById('resExegeteCard');
+  const body = document.getElementById('resExegeteBody');
+  card.style.display = 'none'; body.innerHTML = '';
+  let d;
+  try {
+    const r = await fetch(`exegete/${dateKey}.json?v=${Date.now()}`, { cache: 'no-store' });
+    if (!r.ok) return;
+    d = await r.json();
+  } catch (e) { return; }
+  if (!d || !Array.isArray(d.candidates) || !d.candidates.length) return;
+
+  const esc = t => String(t || '').replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  const html = d.candidates.map((c, i) => {
+    const books = (c.books || []).map(b => `${esc(b.book)} ${b.n}`).join(' · ');
+    const refs = (c.refs || []).map(r =>
+      `<div style="margin:6px 0;line-height:1.7"><span style="color:var(--accent2);font-weight:600;font-size:12px">${esc(r.ref)}</span><br>${esc(r.text)}</div>`
+    ).join('');
+    const head = `
+      <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">
+        <span style="font-size:22px;font-weight:700">${esc(c.lemma)}</span>
+        <span style="color:var(--text2)">${esc(c.gloss)}</span>
+        <span style="font-size:12px;color:var(--text2)">${esc(c.strong)} · 성경 전체 ${c.total}회${c.in_key_verse ? ' · 핵심구절' : ''}</span>
+      </div>
+      <div style="font-size:12px;color:var(--text2);margin-top:4px">${esc(c.in_verse)}에서 「${esc(c.surface)}」 · ${books}</div>`;
+    const inner = `${head}<div style="margin-top:10px;border-left:3px solid var(--line);padding-left:12px">${refs}</div>`;
+    return i === 0
+      ? `<div class="insight-item">${inner}</div>`
+      : `<details style="margin-top:12px"><summary style="cursor:pointer;color:var(--accent2)">후보 ${i+1}: ${esc(c.lemma)} (${esc(c.gloss)})</summary><div style="margin-top:8px">${inner}</div></details>`;
+  }).join('');
+  body.innerHTML = html + `<div style="margin-top:12px;font-size:11px;color:var(--text2)">원어 데이터: STEPBible TAGNT/TAHOT (CC BY 4.0) · 본문 ${esc(d.scripture_ko || d.scripture_ref)}</div>`;
+  card.style.display = 'block';
+}
+
+// ─────────────────────────────────────────────────────────
 // renderResult
 // ─────────────────────────────────────────────────────────
 function renderResult(devo, biblePassage, ko, targetDate) {
@@ -1544,6 +1592,7 @@ function renderResult(devo, biblePassage, ko, targetDate) {
 
   document.getElementById('resInsight1').innerHTML = ko.insight_1;
   document.getElementById('resInsight2').innerHTML = ko.insight_2;
+  loadExegete(dateKey);
   document.getElementById('resQ1').innerHTML = ko.reflection_q1;
   document.getElementById('resQ2').innerHTML = ko.reflection_q2;
 

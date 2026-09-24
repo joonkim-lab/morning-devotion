@@ -504,6 +504,14 @@ html, body {
 <div class="page" id="pageSettings">
   <div class="settings-wrap">
 
+    <div class="settings-section-title">기기 동기화</div>
+    <div class="settings-card">
+      <div class="settings-btn-row">
+        <div id="syncStatus" class="key-status-text" style="margin-bottom:8px"><span style="color:var(--text3)">확인 중…</span></div>
+        <button class="footer-btn" id="syncBtn">구글로 로그인해서 동기화 켜기</button>
+      </div>
+    </div>
+
     <div class="settings-section-title">Anthropic API 키</div>
     <div class="settings-card">
       <div class="settings-btn-row">
@@ -1890,6 +1898,153 @@ document.addEventListener('DOMContentLoaded', function() {
   if (localStorage.getItem('devotion-data-' + getTodayKey())) {
     restoreToday();
   }
+});
+</script>
+<script type="module">
+// ═════════════════════════════════════════════════════════
+// [2026-09-25] 기기 간 동기화 (폰 · 아이패드 · 맥)
+// 기존 코드는 그대로 localStorage를 쓴다. 이 모듈은 그 옆에서
+//   ① 'devotion-'으로 시작하는 키가 저장/삭제될 때마다 Firestore에 복사하고
+//   ② 앱을 열거나 다시 앞으로 가져올 때 Firestore → localStorage로 받아온다.
+// 저장 위치: morning-devotion-1ec5c 프로젝트(개인 전용) / morning/{uid}/kv/{키}   (본인만 읽기·쓰기)
+// API 키(anthropic_api_key)는 동기화하지 않는다 — 기기마다 한 번씩 입력.
+// ═════════════════════════════════════════════════════════
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+  from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js';
+import { getFirestore, doc, setDoc, collection, getDocs }
+  from 'https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js';
+
+const app = initializeApp({
+  apiKey: "AIzaSyBYrIh3NQ5DMtR9_olDZqM_kt9byhJtfbs",
+  authDomain: "morning-devotion-1ec5c.firebaseapp.com",
+  projectId: "morning-devotion-1ec5c",
+  storageBucket: "morning-devotion-1ec5c.firebasestorage.app",
+  messagingSenderId: "119822219793",
+  appId: "1:119822219793:web:cee18807a2e87ada51cfb0"
+}, 'morning-sync');
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const PREFIX = 'devotion-';
+const origSet = Storage.prototype.setItem;
+const origRemove = Storage.prototype.removeItem;
+let uid = null;
+let pulling = false;
+const pending = new Set();          // 로그인 전·받아오는 중에 바뀐 키 (값은 보낼 때 현재값으로)
+
+const statusEl = () => document.getElementById('syncStatus');
+function setStatus(html) { const el = statusEl(); if (el) el.innerHTML = html; }
+
+// ── 쓰기 가로채기: 기존 코드 수정 없이 모든 저장을 감지 ──
+Storage.prototype.setItem = function (k, v) {
+  origSet.call(this, k, v);
+  if (this === window.localStorage && typeof k === 'string' && k.startsWith(PREFIX)) queue(k);
+};
+Storage.prototype.removeItem = function (k) {
+  origRemove.call(this, k);
+  if (this === window.localStorage && typeof k === 'string' && k.startsWith(PREFIX)) queue(k);
+};
+
+function queue(k) {
+  pending.add(k);
+  if (uid && !pulling) flush();
+}
+
+async function flush() {
+  if (!uid || pulling) return;
+  const keys = [...pending]; pending.clear();
+  for (const k of keys) {
+    const v = localStorage.getItem(k);
+    try {
+      await setDoc(doc(db, 'morning', uid, 'kv', k),
+        v === null ? { deleted: true, t: Date.now() } : { v, deleted: false, t: Date.now() });
+    } catch (e) {
+      pending.add(k);
+      setStatus(`<span style="color:#c0392b">동기화 실패: ${String(e.code || e.message).replace(/</g,'&lt;')}</span>`);
+      return;
+    }
+  }
+  if (keys.length) setStatus(`<span class="ok">✓ 동기화됨</span> · ${auth.currentUser?.email || ''}`);
+}
+
+// ── 받아오기: 서버에 있는 것은 서버 기준, 이 기기에만 있는 것은 올린다 ──
+async function pull() {
+  if (!uid) return;
+  pulling = true;
+  let changed = 0, uploaded = 0;
+  try {
+    const snap = await getDocs(collection(db, 'morning', uid, 'kv'));
+    const remote = new Map();
+    snap.forEach(d => remote.set(d.id, d.data()));
+
+    remote.forEach((r, k) => {
+      const local = localStorage.getItem(k);
+      if (r.deleted) {
+        if (local !== null) { origRemove.call(localStorage, k); changed++; }
+      } else if (local !== r.v) {
+        origSet.call(localStorage, k, r.v); changed++;
+      }
+    });
+
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(PREFIX) && !remote.has(k)) { pending.add(k); uploaded++; }
+    }
+  } catch (e) {
+    pulling = false;
+    setStatus(`<span style="color:#c0392b">받아오기 실패: ${String(e.code || e.message).replace(/</g,'&lt;')}</span>`);
+    return;
+  }
+  pulling = false;
+  await flush();
+
+  if (changed) refreshUI();
+  const n = [...Array(localStorage.length).keys()]
+    .map(i => localStorage.key(i)).filter(k => k && k.startsWith('devotion-data-')).length;
+  setStatus(`<span class="ok">✓ 동기화됨</span> · ${auth.currentUser?.email || ''}<br>` +
+            `<span style="font-size:12px;color:var(--text3)">묵상 ${n}일치` +
+            (changed ? ` · 받아옴 ${changed}` : '') + (uploaded ? ` · 올림 ${uploaded}` : '') + `</span>`);
+}
+
+function refreshUI() {
+  try { window.showStats && window.showStats(); } catch (e) {}
+  try { window.renderCalendar && window.renderCalendar(); } catch (e) {}
+  try {
+    const todayKey = window.getTodayKey && window.getTodayKey();
+    if (todayKey && localStorage.getItem('devotion-data-' + todayKey) && window.restoreToday) {
+      document.getElementById('noResultView') && (document.getElementById('noResultView').style.display = 'none');
+      window.restoreToday();
+    }
+  } catch (e) {}
+}
+
+// ── 로그인 UI ──
+function renderAuthUI(user) {
+  const btn = document.getElementById('syncBtn');
+  if (!btn) return;
+  if (user) {
+    btn.textContent = '로그아웃';
+    btn.onclick = () => signOut(auth);
+  } else {
+    btn.textContent = '구글로 로그인해서 동기화 켜기';
+    btn.onclick = async () => {
+      try { await signInWithPopup(auth, new GoogleAuthProvider()); }
+      catch (e) { setStatus(`<span style="color:#c0392b">로그인 실패: ${String(e.code || e.message).replace(/</g,'&lt;')}</span>`); }
+    };
+    setStatus('<span style="color:var(--text3)">동기화 꺼짐 — 이 기기에만 저장 중</span>');
+  }
+}
+
+onAuthStateChanged(auth, async user => {
+  uid = user ? user.uid : null;
+  renderAuthUI(user);
+  if (user) { setStatus('받아오는 중…'); await pull(); }
+});
+
+// 다른 기기에서 쓰다가 이 앱으로 돌아오면 최신으로 받아온다
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && uid) pull();
 });
 </script>
 </body>

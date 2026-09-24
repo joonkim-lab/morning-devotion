@@ -608,6 +608,11 @@ html, body {
           <div class="detail-text" id="detailInsight2"></div>
         </div>
       </div>
+      <!-- exegete: 오늘의 단어 (지난 묵상 상세) -->
+      <div class="detail-section" id="detailExegeteSection" style="display:none">
+        <div class="detail-section-label">✦ 오늘의 단어 <span style="font-weight:400;color:var(--text2)">Exegete</span></div>
+        <div class="detail-text" id="detailExegeteBody"></div>
+      </div>
       <div class="detail-section" id="detailQuestionSection" style="display:none">
         <div class="detail-section-label">묵상 질문</div>
         <div style="margin-bottom:12px;">
@@ -1482,9 +1487,10 @@ async function startDevotion(targetDate) {
 // exegete: 오늘의 단어 — 맥미니가 미리 만들어 둔 정적 JSON 하나만 읽는다.
 // 파일이 없으면(404) 아무것도 안 하고 조용히 넘어간다. API 호출 없음.
 // ─────────────────────────────────────────────────────────
-async function loadExegete(dateKey) {
-  const card = document.getElementById('resExegeteCard');
-  const body = document.getElementById('resExegeteBody');
+async function loadExegete(dateKey, cardId = 'resExegeteCard', bodyId = 'resExegeteBody') {
+  const card = document.getElementById(cardId);
+  const body = document.getElementById(bodyId);
+  if (!card || !body) return;
   card.style.display = 'none'; body.innerHTML = '';
   let d;
   try {
@@ -1848,6 +1854,7 @@ function openDetail(dateStr) {
       answersEl.appendChild(div);
     });
   }
+  loadExegete(dateStr, 'detailExegeteSection', 'detailExegeteBody');
 
   document.getElementById('detailOverlay').classList.add('show');
   document.getElementById('detailOverlay').dataset.currentDate = dateStr;

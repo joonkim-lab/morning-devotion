@@ -1128,7 +1128,7 @@ function parseOdbHtml(post, odbDate) {
     if (anchors.length) key_verse_ref = odbCleanRef(odbStripTags(anchors[anchors.length - 1][1]));
     key_verse = odbStripTags(vb[1].replace(/<a[^>]*>[^<]*<\/a>/g, ''));
   }
-  if (!key_verse) errs.push('verse-box(핵심 구절) 못 찾음');
+  // 2026-10-27부터 ODB 캐나다가 verse-box를 비워서 올림 → 오류로 보지 않고, 4단계 전에 본문에서 한 절을 고른다
 
   let message_body = '';
   const pc = html.match(/class="post-content"[^>]*>([\s\S]*?)<\/div>/);
@@ -1319,6 +1319,31 @@ ${insightEn}
   return result.insight_ko || null;
 }
 
+// ── 핵심 구절 고르기 (ODB verse-box가 비었을 때, 가족 앱과 같은 방식) ──
+async function pickKeyVerse(scripture_ref, passage, title, body) {
+  const verses = passage.verses;
+  const list = verses.map(v => `${v.num}: ${v.text}`).join('\n');
+  const prompt = `오늘 묵상의 핵심 구절을 아래 본문에서 딱 한 절 고르세요.
+묵상 제목: ${title || ''}
+묵상 내용 요약용 원문: ${(body || '').slice(0, 1500)}
+
+본문 ${scripture_ref} (개역개정):
+${list}
+
+기준: 묵상 메시지를 가장 잘 담은 한 절.
+절 번호 숫자만 출력하세요. 다른 말 금지.`;
+  let num = '';
+  try {
+    const text = await callClaude([{ role:'user', content: prompt }], { maxTokens: 10 });
+    num = ((text || '').match(/\d+/) || [])[0] || '';
+  } catch(e) { console.warn('[pickKeyVerse 호출 실패]', e); }
+  let v = verses.find(x => x.num === num);
+  if (!v) v = verses[verses.length - 1];
+  const chapter = ((scripture_ref || '').match(/(\d+):/) || [])[1] || '';
+  const book = (scripture_ref || '').replace(/\s*\d+:.*$/, '').trim();
+  return { ref: `${book} ${chapter}:${v.num}`, ko: v.text };
+}
+
 async function generateKoreanDevotion(devo, keyVerseKo) {
   const text = await callClaude([{ role:'user', content:`ODB 본문을 한국어 QT 묵상으로 변환합니다.
 
@@ -1447,6 +1472,14 @@ async function startDevotion(targetDate) {
         keyVerseKo = bible[k] ? bible[k].trim() : '';
       }
     } catch(e) { keyVerseKo = ''; }
+    if (!keyVerseKo && biblePassage && biblePassage.verses && biblePassage.verses.length) {
+      try {
+        setStepStatus('4','active','핵심 구절 고르는 중...');
+        const pick = await pickKeyVerse(devo.scripture_ref, biblePassage, devo.title, devo.message_body);
+        devo.key_verse_ref = pick.ref; keyVerseKo = pick.ko;
+        if (!devo.key_verse) devo.key_verse = pick.ko;
+      } catch(e) { console.warn('[핵심 구절 고르기 실패]', e); }
+    }
 
     let lastErr;
     for (let attempt = 1; attempt <= 2; attempt++) {

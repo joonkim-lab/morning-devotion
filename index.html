@@ -1551,6 +1551,7 @@ async function loadExegete(dateKey, cardId = 'resExegeteCard', bodyId = 'resExeg
     <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
       <span style="font-size:24px;font-weight:700">${esc(c.lemma)}</span>
       <span style="font-size:20px;font-weight:700;color:var(--accent2)">${esc(c.translit)}</span>
+      ${c.gloss_ko ? `<span style="font-size:16px;font-weight:600;color:var(--text)">${esc(c.gloss_ko)}</span>` : ''}
       <span style="color:var(--text2)">${esc(c.gloss)}</span>
     </div>
     <div style="font-size:12px;color:var(--text2);margin-top:4px">${esc(c.in_verse)}에서 「${esc(c.surface)}」 · 성경 전체 ${c.total}회 · ${books}</div>`;

@@ -168,6 +168,22 @@ html, body {
 
 /* 묵상 텍스트 */
 .meditation-text { font-size: 16px; line-height: 1.85; color: var(--text2); }
+/* 원어 묵상 (2026-11-23) — 기존 카드·글꼴·색 그대로, 필요한 것만 보탬 */
+.exg-mark { color: var(--accent); font-weight: 700; border-bottom: 2px solid var(--accent); }
+.exg-q { color: var(--text); font-weight: 500; }
+.exg-word { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.exg-lemma { font-size: 28px; font-weight: 700; color: var(--accent); line-height: 1.3; }
+.exg-translit { font-size: 19px; font-weight: 700; color: var(--text); }
+.exg-gloss { font-size: 14px; color: var(--text3); }
+.exg-h { font-size: 13px; font-weight: 700; color: var(--accent2); margin: 18px 0 6px; }
+.exg-h:first-child { margin-top: 0; }
+.exg-more { font-size: 13px; color: var(--text3); border-top: 0.5px solid var(--line); margin-top: 14px; padding-top: 10px; line-height: 1.7; }
+.exg-question { font-size: 17px; line-height: 1.65; color: var(--text); font-weight: 600; }
+.exg-trace-status { font-size: 13px; color: var(--text3); margin-top: 6px; min-height: 18px; }
+.exg-trace-status.ok { color: var(--accent); font-weight: 600; }
+.detail-body #detailMed { display: none; margin: 0 -16px; }
+.detail-body.exg-mode > *:not(#detailMed) { display: none !important; }
+.detail-body.exg-mode #detailMed { display: block; }
 .meditation-text p { margin-bottom: 12px; }
 .meditation-text p:last-child { margin-bottom: 0; }
 .meditation-text em { font-style: normal; font-weight: 600; color: var(--text); }
@@ -498,6 +514,9 @@ html, body {
     </div>
   </div>
 
+  <!-- 원어 묵상 화면 (exegete/{날짜}.json 에 meditation 이 있는 날) -->
+  <div id="medView" style="display:none"></div>
+
 </div>
 
 <!-- ── 설정 탭 ── -->
@@ -583,6 +602,7 @@ html, body {
       <div class="detail-title" id="detailTitle"></div>
     </div>
     <div class="detail-body">
+      <div id="detailMed"></div>
       <div class="detail-kv" id="detailKv"></div>
       <div id="detailBiblePassage" style="display:none;margin-bottom:14px;">
         <div class="bible-passage">
@@ -903,6 +923,8 @@ function restoreToday() {
   if (!saved) return false;
   try {
     const entry = JSON.parse(saved);
+    if (entry.exg && entry.exg.meditation) { showMeditation(entry, getTodayKey()); return true; }
+    document.getElementById('medView').style.display = 'none';
     const devo = { title: entry.title_en, date: entry.date_display, scripture_ref: entry.scripture_ref, key_verse: entry.key_verse_en, key_verse_ref: entry.key_verse_ref, author: entry.author };
     const ko = { title_ko: entry.title_ko, key_verse_ko: entry.key_verse_ko, meditation: entry.meditation, insight_1: entry.insight_1, insight_2: entry.insight_2, insight_ko_translated: entry.insight_ko_translated || null, insight_en_original: entry.insight_en_original || '', reflection_q1: entry.question_1, reflection_q2: entry.question_2, prayer_1: entry.prayer_1, prayer_2: entry.prayer_2, prayer_3: entry.prayer_3 };
     devotionData = { devo, ko, biblePassage: entry.bible_passage || null };
@@ -1403,11 +1425,16 @@ async function startDevotion(targetDate) {
     return;
   }
 
+  // 원어 묵상: 맥미니가 만든 파일에 묵상이 있으면 그것만 보여 준다 (API 키·호출 불필요)
+  const exgDay = await fetchExegeteDay(dateKey);
+  if (exgDay && exgDay.meditation && exgDay.passage) { openExegeteDay(exgDay, dateKey, isPastDate); return; }
+
   const key = localStorage.getItem('anthropic_api_key');
   if (!key) { alert('설정 탭에서 API 키를 먼저 저장해주세요.'); switchTab('pageSettings'); return; }
 
   document.getElementById('noResultView').style.display = 'none';
   document.getElementById('resultView').style.display = 'none';
+  document.getElementById('medView').style.display = 'none';
   document.getElementById('progressView').style.display = 'block';
   ['0','1','1b','4','5'].forEach(i => setStepStatus(i, ''));
 
@@ -1561,6 +1588,218 @@ async function loadExegete(dateKey, cardId = 'resExegeteCard', bodyId = 'resExeg
   const more = `<details style="margin-top:12px"><summary style="cursor:pointer;color:var(--accent2)">이 단어가 지나는 구절 ${(c.refs||[]).length}개</summary><div style="margin-top:8px;border-left:3px solid var(--line);padding-left:12px">${refs}</div></details>`;
   body.innerHTML = head + insight + more + `<div style="margin-top:12px;font-size:11px;color:var(--text2)">원어 데이터: STEPBible TAGNT/TAHOT (CC BY 4.0) · 음역은 근사 표기</div>`;
   card.style.display = 'block';
+}
+
+// ─────────────────────────────────────────────────────────
+// [2026-11-23] 원어 묵상 — 맥미니가 만든 exegete/{날짜}.json 에 meditation 이 있으면
+// ODB 글·묵상 생성·INSIGHT 번역 없이 이 화면만 보여 준다 (아침 API 호출 0회).
+// 파일이 없거나 meditation 이 없으면 아래 예전 흐름이 그대로 돈다.
+// ─────────────────────────────────────────────────────────
+const exgEsc = t => String(t == null ? '' : t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+// «성경 인용» → 따옴표 + 강조, 빈 줄 → 문단
+function exgText(t) {
+  return String(t || '').split(/\n\s*\n/).map(p => p.trim()).filter(Boolean)
+    .map(p => '<p>' + exgEsc(p).replace(/«([^»]*)»/g, '<span class="exg-q">“$1”</span>') + '</p>').join('');
+}
+async function fetchExegeteDay(dateKey) {
+  try {
+    const r = await fetch(`exegete/${dateKey}.json?v=${Date.now()}`, { cache: 'no-store' });
+    if (!r.ok) return null;
+    return await r.json();
+  } catch (e) { return null; }
+}
+function exgPlain(m) {
+  return [m.intro].concat((m.body || []).map(b => `<strong>${exgEsc(b.heading)}</strong>\n\n${b.text}`), [m.conclusion])
+    .map(exgText).join('').replace(/&lt;strong&gt;/g,'<strong>').replace(/&lt;\/strong&gt;/g,'</strong>');
+}
+// 기존 저장 형식(달력·통계·동기화·백업이 읽는 키)을 그대로 채우고, 새 내용은 exg 에 담는다.
+function buildExgEntry(d, dateKey, prev) {
+  const m = d.meditation, c = (d.candidates || [])[0] || {};
+  return {
+    date: dateKey, date_display: '', title_en: '', title_ko: m.title, author: '',
+    scripture_ref: d.scripture_ref || '',
+    key_verse_en: '', key_verse_ref: (d.key_verse || {}).ref || '', key_verse_ko: (d.key_verse || {}).text || '',
+    bible_passage: { book_ko: (d.passage || {}).book || '', verses: ((d.passage || {}).verses || []).map(v => ({ num: v.num, text: v.text })) },
+    meditation: exgPlain(m), insight_1: '', insight_2: '', insight_ko_translated: null, insight_en_original: '',
+    question_1: m.question || '', question_2: '', prayer_1: m.prayer || '', prayer_2: '', prayer_3: '',
+    answer_1: (prev && prev.answer_1) || '', answer_2: '', ai_response_1: '', ai_response_2: '', source_url: '',
+    exg: {
+      v: 1, meditation: m, passage: d.passage || null, key_verse: d.key_verse || null,
+      word: { strong: c.strong, lemma: c.lemma, translit: c.translit, gloss: c.gloss, gloss_ko: m.gloss_ko || c.gloss_ko || '', total: c.total, language: d.language },
+      attribution: d.attribution || '', generated_at: d.generated_at || '', rewritten_at: (prev && prev.exg && prev.exg.rewritten_at) || ''
+    }
+  };
+}
+function exgVerseHTML(v) {
+  let t = exgEsc(v.text);
+  if (v.mark) { const mk = exgEsc(v.mark); t = t.split(mk).join(`<span class="exg-mark">${mk}</span>`); }
+  return `<span class="verse-block"><span class="verse-num">${exgEsc(v.num)}</span>${t}</span>`;
+}
+// interactive=true 는 오늘 화면(따라 쓰기 입력·다시 쓰기 버튼), false 는 달력 상세(읽기 전용)
+function renderMedHTML(entry, dateKey, interactive) {
+  const x = entry.exg, m = x.meditation, w = x.word || {}, p = x.passage || { verses: [] }, kv = x.key_verse || {};
+  const card = (num, title, tag, body) => `
+    <div class="section-card">
+      <div class="section-header"><span class="section-num">${num}</span><span class="section-title">${title}</span><span class="section-tag">${tag}</span></div>
+      <div class="section-body">${body}</div>
+    </div>`;
+  const traced = localStorage.getItem(`devotion-${dateKey}-trace`) || '';
+  const heb = w.language === 'hebrew';
+  const head = `
+    <div class="result-header">
+      <div class="result-eyebrow">원어 묵상 · ${exgEsc(fmtDisplay(dateKey))}</div>
+      <div class="result-title">${exgEsc(m.title)}</div>
+      <div class="result-meta"><span>본문 · ${exgEsc(p.ref_ko || entry.scripture_ref)}</span></div>
+    </div>`;
+  const read = `
+    <div class="bible-passage">
+      <div class="bible-passage-header"><span class="bible-passage-label">${exgEsc(p.ref_ko || '')}</span><span class="bible-version-badge">개역개정</span></div>
+      <div>${(p.verses || []).map(exgVerseHTML).join('')}</div>
+    </div>`;
+  const word = `
+    <div class="exg-word">
+      <span class="exg-lemma"${heb ? ' dir="rtl" lang="he"' : ' lang="el"'}>${exgEsc(w.lemma)}</span>
+      <span class="exg-translit">${exgEsc(w.translit)}</span>
+      <span class="exg-gloss">${exgEsc(w.gloss_ko || w.gloss || '')}</span>
+    </div>
+    <div class="meditation-text">${exgText(m.word_intro)}</div>`;
+  const essay = `
+    <div class="meditation-text">
+      <div class="exg-h">서론</div>${exgText(m.intro)}
+      ${(m.body || []).map((b, i) => `<div class="exg-h">본론 ${i + 1}. ${exgEsc(b.heading)}</div>${exgText(b.text)}`).join('')}
+      <div class="exg-h">결론</div>${exgText(m.conclusion)}
+    </div>
+    ${(m.more_refs || []).length ? `<div class="exg-more">더 찾아볼 곳: ${m.more_refs.map(exgEsc).join(' · ')}</div>` : ''}`;
+  const question = `<div class="exg-question">${exgEsc(m.question)}</div>`;
+  const trace = `
+    <div class="key-verse-box" style="margin-bottom:10px">
+      <div class="key-verse-label">${exgEsc(kv.ref || '')}</div>
+      <div class="key-verse-text" id="${interactive ? 'exgTraceTarget' : ''}">${exgEsc(kv.text || '')}</div>
+    </div>
+    ${interactive
+      ? `<textarea class="reflect-textarea" id="exgTraceInput">${exgEsc(traced)}</textarea>
+         <div class="exg-trace-status" id="exgTraceStatus"></div>`
+      : (traced ? `<div class="detail-text" style="white-space:pre-wrap">${exgEsc(traced)}</div>` : '<div class="exg-trace-status">적지 않음</div>')}`;
+  const prayer = `<div class="meditation-text exg-prayer">${exgText(m.prayer)}</div><p class="prayer-amen">— Amen —</p>`;
+  const foot = `
+    <div class="result-footer">
+      <p class="source-note">원어 자료: Tyndale House, Cambridge / STEPBible.org (CC BY 4.0)<br>한글 본문: 개역개정 · 묵상·질문·기도는 AI가 위 구절들로 엮은 것입니다${x.rewritten_at ? '<br>이 기기에서 다시 쓴 글' : ''}</p>
+      ${interactive ? '<button class="footer-btn" id="exgRewriteBtn">다시 쓰기</button><div class="exg-trace-status" id="exgRewriteStatus" style="text-align:center;margin-top:8px"></div>' : ''}
+    </div>`;
+  return head + card('01', '읽기', 'Scripture', read) + card('02', '오늘의 단어', 'Word', word) + card('03', '묵상', 'Meditation', essay)
+       + card('04', '질문', '오늘 하루 들고 다닐 것', question) + card('05', '핵심 구절 따라 쓰기', '선택', trace) + card('06', '기도', 'Prayer', prayer) + foot;
+}
+// 가족 앱 「핵심 구절 따라 쓰기」와 같은 판정(80%). 여기서는 완료 조건이 아니라 표시만 한다.
+function exgNormTrace(s) { return (s || '').replace(/[^가-힣a-zA-Z0-9]/g, ''); }
+function exgTraceRatio(targetText, inputText) {
+  const target = exgNormTrace(targetText), input = exgNormTrace(inputText);
+  if (!target) return 1;
+  if (!input) return 0;
+  let match = 0;
+  for (let i = 0; i < Math.min(target.length, input.length); i++) if (target[i] === input[i]) match++;
+  const byPos = match / target.length, byLen = Math.min(input.length / target.length, 1);
+  return Math.min(byPos + (byLen >= 0.9 ? 0.1 : 0), Math.max(byPos, byLen >= 0.95 ? byLen * 0.85 : 0));
+}
+function exgUpdateTrace() {
+  const inp = document.getElementById('exgTraceInput'), st = document.getElementById('exgTraceStatus'), tg = document.getElementById('exgTraceTarget');
+  if (!inp || !st || !tg) return;
+  const v = inp.value.trim();
+  if (!v) { st.textContent = ''; st.className = 'exg-trace-status'; return; }
+  const ok = exgTraceRatio(tg.textContent, v) >= 0.8;
+  st.textContent = ok ? '다 적었습니다 ✓' : '적는 중…';
+  st.className = 'exg-trace-status' + (ok ? ' ok' : '');
+}
+function showMeditation(entry, dateKey) {
+  ['progressView', 'noResultView', 'resultView'].forEach(id => { document.getElementById(id).style.display = 'none'; });
+  const view = document.getElementById('medView');
+  view.innerHTML = renderMedHTML(entry, dateKey, true);
+  view.style.display = 'block';
+  const inp = document.getElementById('exgTraceInput');
+  if (inp) {
+    let timer = null;
+    inp.addEventListener('input', () => {
+      exgUpdateTrace();
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        if (inp.value.trim()) localStorage.setItem(`devotion-${dateKey}-trace`, inp.value);
+        else localStorage.removeItem(`devotion-${dateKey}-trace`);
+      }, 600);
+    });
+    exgUpdateTrace();
+  }
+  const btn = document.getElementById('exgRewriteBtn');
+  if (btn) btn.addEventListener('click', () => rewriteMeditation(dateKey));
+}
+function openExegeteDay(d, dateKey, isPastDate) {
+  const entry = buildExgEntry(d, dateKey, null);
+  localStorage.setItem(`devotion-opened-${dateKey}`, '1');
+  localStorage.setItem(`devotion-data-${dateKey}`, JSON.stringify(entry));
+  devotionData = null;
+  showStats(); renderCalendar();
+  if (isPastDate) { switchTab('pageCalendar'); openDetail(dateKey); }
+  else { showMeditation(entry, dateKey); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+}
+// 기계 검사(맥미니 스크립트의 것을 줄인 판): 구조 + «인용»이 개역개정 글자 그대로인지
+function exgVerify(med, pool, bible) {
+  const probs = [];
+  ['title', 'word_intro', 'intro', 'conclusion', 'question', 'prayer'].forEach(k => { if (typeof med[k] !== 'string' || !med[k].trim()) probs.push(`'${k}'가 비어 있음`); });
+  if (!(Array.isArray(med.body) && med.body.length === 2 && med.body.every(b => b && (b.heading || '').trim() && (b.text || '').trim()))) probs.push('body는 본론 정확히 2개여야 함');
+  if (probs.length) return probs;
+  const norm = s => (s || '').replace(/[^0-9A-Za-z가-힣]/g, '');
+  const hay = (pool.allowed_keys || []).map(k => norm(bible[k]));
+  const texts = [med.title, med.word_intro, med.intro, med.conclusion, med.question, med.prayer].concat(med.body.map(b => b.heading + '\n' + b.text));
+  texts.forEach(t => (String(t).match(/«[^»]*»/g) || []).forEach(q => q.slice(1, -1).split(/…|\.\.\./).forEach(piece => {
+    const n = norm(piece);
+    if (n.length >= 2 && !hay.some(h => h.includes(n))) probs.push(`인용 «${piece.trim()}» 이 개역개정 본문과 글자가 다름`);
+  })));
+  return probs;
+}
+let exgRewriting = false;
+async function rewriteMeditation(dateKey) {
+  if (exgRewriting) return;
+  const st = document.getElementById('exgRewriteStatus'), btn = document.getElementById('exgRewriteBtn');
+  const say = t => { if (st) st.textContent = t; };
+  if (!localStorage.getItem('anthropic_api_key')) { alert('다시 쓰기는 이 기기의 API 키를 씁니다. 설정 탭에서 키를 먼저 저장해 주세요.'); return; }
+  if (!confirm('오늘 글을 새로 씁니다. 지금 글은 사라지고 되돌릴 수 없습니다. 계속할까요?')) return;
+  exgRewriting = true; if (btn) btn.disabled = true;
+  try {
+    say('자료를 불러오는 중…');
+    const d = await fetchExegeteDay(dateKey);
+    const pool = d && Array.isArray(d.usage_pool) && d.usage_pool[0];
+    if (!pool || !pool.prompt) throw new Error('맥미니가 만든 자료 파일을 찾지 못했습니다. 인터넷 연결을 확인해 주세요.');
+    const bible = await loadBible();
+    const prompt = pool.prompt.replace(/\{\{(.+?)\}\}/g, (_, k) => (bible[k] || '').trim());
+    let med = null, feedback = '';
+    for (let attempt = 1; attempt <= 2 && !med; attempt++) {
+      say(attempt === 1 ? '새 글을 쓰는 중… (1분쯤 걸립니다)' : '인용을 고쳐 다시 쓰는 중…');
+      const cand = parseJSON(await callClaude([{ role: 'user', content: prompt + feedback }], { maxTokens: 5000 }));
+      const probs = exgVerify(cand, pool, bible);
+      if (!probs.length) med = cand;
+      else feedback = '\n\n━━ 다시 쓰기 ━━\n직전에 쓴 글이 기계 검사에서 걸렸습니다. 아래를 고쳐 JSON 전체를 다시 출력하세요.\n- ' + probs.slice(0, 10).join('\n- ') + '\n\n직전 글:\n' + JSON.stringify(cand);
+    }
+    if (!med) throw new Error('새 글이 인용 검사를 두 번 통과하지 못했습니다. 지금 글을 그대로 둡니다.');
+    const marks = {};
+    (med.marks || []).forEach(mk => { if (mk && mk.ref && mk.word) marks[String(mk.ref).replace(/\s+/g, '')] = String(mk.word).trim(); });
+    delete med.marks;
+    const abbr = (d.passage || {}).abbr || '';
+    ((d.passage || {}).verses || []).forEach(v => {
+      const wd = marks[`${abbr}${v.ch}:${String(v.num).split(':').pop()}`];
+      if (v.has_word && wd && v.text.includes(wd)) v.mark = wd; else if (wd === undefined && v.mark) { /* 새 글이 표시하지 않은 절은 원래 밑줄 유지 */ }
+    });
+    d.meditation = med;
+    let prev = null; try { prev = JSON.parse(localStorage.getItem(`devotion-data-${dateKey}`)); } catch (e) {}
+    const entry = buildExgEntry(d, dateKey, prev);
+    entry.exg.rewritten_at = new Date().toISOString();
+    localStorage.setItem(`devotion-data-${dateKey}`, JSON.stringify(entry));
+    showMeditation(entry, dateKey);
+    renderCalendar();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } catch (err) {
+    say('');
+    alert('다시 쓰기에 실패했습니다.\n\n' + err.message + '\n\n지금 글은 그대로 있습니다.');
+  } finally {
+    exgRewriting = false; const b = document.getElementById('exgRewriteBtn'); if (b) b.disabled = false;
+  }
 }
 
 // ─────────────────────────────────────────────────────────
@@ -1811,6 +2050,19 @@ function openDetail(dateStr) {
   if (!raw) return;
   const e = JSON.parse(raw);
 
+  const detailBody = document.querySelector('#detailOverlay .detail-body');
+  if (e.exg && e.exg.meditation) {      // 원어 묵상으로 한 날: 같은 그림을 읽기 전용으로
+    document.getElementById('detailDate').textContent = fmtDisplay(dateStr);
+    document.getElementById('detailTitle').textContent = e.title_ko || '—';
+    document.getElementById('detailMed').innerHTML = renderMedHTML(e, dateStr, false);
+    detailBody.classList.add('exg-mode');
+    document.getElementById('detailOverlay').classList.add('show');
+    document.getElementById('detailOverlay').dataset.currentDate = dateStr;
+    return;
+  }
+  detailBody.classList.remove('exg-mode');
+  document.getElementById('detailMed').innerHTML = '';
+
   document.getElementById('detailDate').textContent = fmtDisplay(dateStr);
   document.getElementById('detailTitle').textContent = e.title_ko || e.title_en || '—';
   document.getElementById('detailKv').textContent = `"${e.key_verse_ko || ''}" — ${e.key_verse_ref || ''}`;
@@ -1916,6 +2168,11 @@ document.getElementById('detailDeleteBtn').addEventListener('click', function() 
   localStorage.removeItem('devotion-' + dateStr + '-q2');
   localStorage.removeItem('devotion-' + dateStr + '-ai1');
   localStorage.removeItem('devotion-' + dateStr + '-ai2');
+  localStorage.removeItem('devotion-' + dateStr + '-trace');
+  if (dateStr === getTodayKey() && document.getElementById('medView').style.display !== 'none') {
+    document.getElementById('medView').style.display = 'none';
+    document.getElementById('noResultView').style.display = 'block';
+  }
   document.getElementById('detailOverlay').classList.remove('show');
   document.getElementById('calPreview').style.display = 'none';
   showStats();

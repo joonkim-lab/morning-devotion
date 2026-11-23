@@ -1602,11 +1602,16 @@ function exgText(t) {
     .map(p => '<p>' + exgEsc(p).replace(/«([^»]*)»/g, '<span class="exg-q">“$1”</span>') + '</p>').join('');
 }
 async function fetchExegeteDay(dateKey) {
-  try {
-    const r = await fetch(`exegete/${dateKey}.json?v=${Date.now()}`, { cache: 'no-store' });
-    if (!r.ok) return null;
-    return await r.json();
-  } catch (e) { return null; }
+  // [2026-11-23] Pages에서 못 받으면(반영 멈춤·순간 끊김) 저장소 raw 주소로 한 번 더 받는다.
+  const urls = [`exegete/${dateKey}.json?v=${Date.now()}`,
+                `https://raw.githubusercontent.com/joonkim-lab/morning-devotion/main/exegete/${dateKey}.json?v=${Date.now()}`];
+  for (const u of urls) {
+    try {
+      const r = await fetch(u, { cache: 'no-store' });
+      if (r.ok) return await r.json();
+    } catch (e) {}
+  }
+  return null;
 }
 function exgPlain(m) {
   return [m.intro].concat((m.body || []).map(b => `<strong>${exgEsc(b.heading)}</strong>\n\n${b.text}`), [m.conclusion])
@@ -2190,6 +2195,24 @@ document.addEventListener('DOMContentLoaded', function() {
     restoreToday();
   }
 });
+
+// [2026-11-23] 앱을 켜 둔 채 날짜가 넘어가면 어제 화면·어제 달력 버튼이 남는다.
+// 앱이 다시 앞으로 올 때 날짜가 바뀌었으면 시작 화면으로 되돌리고 달력을 새로 그린다.
+let shownDayKey = getTodayKey();
+function checkDayRollover() {
+  const today = getTodayKey();
+  if (today === shownDayKey) return;
+  shownDayKey = today;
+  ['medView', 'resultView', 'progressView'].forEach(id => { document.getElementById(id).style.display = 'none'; });
+  document.getElementById('noResultView').style.display = 'block';
+  devotionData = null;
+  showStats();
+  renderCalendar();
+  if (localStorage.getItem('devotion-data-' + today)) restoreToday();
+}
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkDayRollover(); });
+window.addEventListener('pageshow', checkDayRollover);
+window.addEventListener('focus', checkDayRollover);
 </script>
 <script type="module">
 // ═════════════════════════════════════════════════════════

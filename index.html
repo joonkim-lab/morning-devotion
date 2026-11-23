@@ -1642,6 +1642,7 @@ function exgVerseHTML(v) {
 }
 // interactive=true 는 오늘 화면(따라 쓰기 입력·다시 쓰기 버튼), false 는 달력 상세(읽기 전용)
 function renderMedHTML(entry, dateKey, interactive) {
+  const tid = interactive ? 'exg' : 'det';   // [2026-11-24] 달력 상세에서도 따라 쓰기 칸을 보여 준다(칸 id만 다르게)
   const x = entry.exg, m = x.meditation, w = x.word || {}, p = x.passage || { verses: [] }, kv = x.key_verse || {};
   const card = (num, title, tag, body) => `
     <div class="section-card">
@@ -1679,12 +1680,10 @@ function renderMedHTML(entry, dateKey, interactive) {
   const trace = `
     <div class="key-verse-box" style="margin-bottom:10px">
       <div class="key-verse-label">${exgEsc(kv.ref || '')}</div>
-      <div class="key-verse-text" id="${interactive ? 'exgTraceTarget' : ''}">${exgEsc(kv.text || '')}</div>
+      <div class="key-verse-text" id="${tid}TraceTarget">${exgEsc(kv.text || '')}</div>
     </div>
-    ${interactive
-      ? `<textarea class="reflect-textarea" id="exgTraceInput">${exgEsc(traced)}</textarea>
-         <div class="exg-trace-status" id="exgTraceStatus"></div>`
-      : (traced ? `<div class="detail-text" style="white-space:pre-wrap">${exgEsc(traced)}</div>` : '<div class="exg-trace-status">적지 않음</div>')}`;
+    <textarea class="reflect-textarea" id="${tid}TraceInput">${exgEsc(traced)}</textarea>
+    <div class="exg-trace-status" id="${tid}TraceStatus"></div>`;
   const prayer = `<div class="meditation-text exg-prayer">${exgText(m.prayer)}</div><p class="prayer-amen">— Amen —</p>`;
   const foot = `
     <div class="result-footer">
@@ -1705,8 +1704,8 @@ function exgTraceRatio(targetText, inputText) {
   const byPos = match / target.length, byLen = Math.min(input.length / target.length, 1);
   return Math.min(byPos + (byLen >= 0.9 ? 0.1 : 0), Math.max(byPos, byLen >= 0.95 ? byLen * 0.85 : 0));
 }
-function exgUpdateTrace() {
-  const inp = document.getElementById('exgTraceInput'), st = document.getElementById('exgTraceStatus'), tg = document.getElementById('exgTraceTarget');
+function exgUpdateTrace(tid = 'exg') {
+  const inp = document.getElementById(tid + 'TraceInput'), st = document.getElementById(tid + 'TraceStatus'), tg = document.getElementById(tid + 'TraceTarget');
   if (!inp || !st || !tg) return;
   const v = inp.value.trim();
   if (!v) { st.textContent = ''; st.className = 'exg-trace-status'; return; }
@@ -1714,24 +1713,30 @@ function exgUpdateTrace() {
   st.textContent = ok ? '다 적었습니다 ✓' : '적는 중…';
   st.className = 'exg-trace-status' + (ok ? ' ok' : '');
 }
+// 따라 쓰기 칸 연결. tid='exg'는 오늘 화면, 'det'는 달력 상세. 두 칸이 같은 날짜면 서로 글을 맞춘다.
+function exgBindTrace(dateKey, tid) {
+  const inp = document.getElementById(tid + 'TraceInput');
+  if (!inp) return;
+  let timer = null;
+  const save = () => {
+    clearTimeout(timer);
+    const key = `devotion-${dateKey}-trace`, cur = localStorage.getItem(key) || '';
+    if (inp.value.trim()) { if (inp.value !== cur) localStorage.setItem(key, inp.value); }
+    else if (cur) localStorage.removeItem(key);
+    const other = document.getElementById((tid === 'exg' ? 'det' : 'exg') + 'TraceInput');
+    if (other && other.dataset.day === dateKey && other.value !== inp.value) { other.value = inp.value; exgUpdateTrace(tid === 'exg' ? 'det' : 'exg'); }
+  };
+  inp.dataset.day = dateKey;
+  inp.addEventListener('input', () => { exgUpdateTrace(tid); clearTimeout(timer); timer = setTimeout(save, 600); });
+  inp.addEventListener('blur', save);      // 칸을 벗어나거나 앱을 닫을 때 바로 저장
+  exgUpdateTrace(tid);
+}
 function showMeditation(entry, dateKey) {
   ['progressView', 'noResultView', 'resultView'].forEach(id => { document.getElementById(id).style.display = 'none'; });
   const view = document.getElementById('medView');
   view.innerHTML = renderMedHTML(entry, dateKey, true);
   view.style.display = 'block';
-  const inp = document.getElementById('exgTraceInput');
-  if (inp) {
-    let timer = null;
-    inp.addEventListener('input', () => {
-      exgUpdateTrace();
-      clearTimeout(timer);
-      timer = setTimeout(() => {
-        if (inp.value.trim()) localStorage.setItem(`devotion-${dateKey}-trace`, inp.value);
-        else localStorage.removeItem(`devotion-${dateKey}-trace`);
-      }, 600);
-    });
-    exgUpdateTrace();
-  }
+  exgBindTrace(dateKey, 'exg');
   const btn = document.getElementById('exgRewriteBtn');
   if (btn) btn.addEventListener('click', () => rewriteMeditation(dateKey));
 }
@@ -2060,6 +2065,7 @@ function openDetail(dateStr) {
     document.getElementById('detailDate').textContent = fmtDisplay(dateStr);
     document.getElementById('detailTitle').textContent = e.title_ko || '—';
     document.getElementById('detailMed').innerHTML = renderMedHTML(e, dateStr, false);
+    exgBindTrace(dateStr, 'det');
     detailBody.classList.add('exg-mode');
     document.getElementById('detailOverlay').classList.add('show');
     document.getElementById('detailOverlay').dataset.currentDate = dateStr;

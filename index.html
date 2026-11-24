@@ -175,7 +175,17 @@ html, body {
 .exg-lemma { font-size: 28px; font-weight: 700; color: var(--accent); line-height: 1.3; }
 .exg-translit { font-size: 19px; font-weight: 700; color: var(--text); }
 .exg-gloss { font-size: 14px; color: var(--text3); }
-.exg-h { font-size: 13px; font-weight: 700; color: var(--accent2); margin: 18px 0 6px; }
+.exg-h { font-size: 18px; font-weight: 700; color: var(--accent2); margin: 24px 0 8px; line-height: 1.45; }
+/* [2026-11-24] 원어 묵상 화면: 카드 번호·제목을 본문(16px)에 맞게 키움. 예전 흐름 화면은 그대로 */
+#medView .section-num, #detailMed .section-num { font-size: 14px; padding: 3px 8px; }
+#medView .section-title, #detailMed .section-title { font-size: 18px; }
+#medView .section-tag, #detailMed .section-tag { font-size: 13px; }
+/* [2026-11-24] 나의 묵상: 하트 1~5 + 적는 칸 */
+.exg-grace { display: flex; gap: 4px; margin: -4px 0 12px -6px; }
+.exg-grace button { width: 46px; height: 46px; border: 0; background: none; padding: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.exg-grace svg { width: 32px; height: 32px; fill: none; stroke: var(--text3); stroke-width: 1.6; }
+.exg-grace button.on svg { fill: #d9605a; stroke: #d9605a; }
+.reflect-textarea.exg-note { min-height: 150px; }
 .exg-h:first-child { margin-top: 0; }
 .exg-more { font-size: 13px; color: var(--text3); border-top: 0.5px solid var(--line); margin-top: 14px; padding-top: 10px; line-height: 1.7; }
 .exg-question { font-size: 17px; line-height: 1.65; color: var(--text); font-weight: 600; }
@@ -1685,13 +1695,19 @@ function renderMedHTML(entry, dateKey, interactive) {
     <textarea class="reflect-textarea" id="${tid}TraceInput">${exgEsc(traced)}</textarea>
     <div class="exg-trace-status" id="${tid}TraceStatus"></div>`;
   const prayer = `<div class="meditation-text exg-prayer">${exgText(m.prayer)}</div><p class="prayer-amen">— Amen —</p>`;
+  // [2026-11-24] 나의 묵상: 하트 1~5(devotion-{날짜}-grace, 누른 칸까지 칠함) + 느낀 것·정리(devotion-{날짜}-note). 둘 다 선택.
+  const noted = localStorage.getItem(`devotion-${dateKey}-note`) || '';
+  const mine = `
+    <div class="exg-grace" id="${tid}Grace">${[1, 2, 3, 4, 5].map(n => `<button type="button" data-n="${n}" aria-label="하트 ${n}"><svg viewBox="0 0 24 24"><path d="M12 20.5s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.6a4.3 4.3 0 0 1 7.5 2.7c0 5.6-7.5 10.2-7.5 10.2z"/></svg></button>`).join('')}</div>
+    <textarea class="reflect-textarea exg-note" id="${tid}NoteInput" placeholder="느낀 것, 정리, 마음에 새긴 것…">${exgEsc(noted)}</textarea>
+    <div class="exg-trace-status" id="${tid}NoteStatus"></div>`;
   const foot = `
     <div class="result-footer">
       <p class="source-note">원어 자료: Tyndale House, Cambridge / STEPBible.org (CC BY 4.0)<br>한글 본문: 개역개정 · 묵상·질문·기도는 AI가 위 구절들로 엮은 것입니다${x.rewritten_at ? '<br>이 기기에서 다시 쓴 글' : ''}</p>
       ${interactive ? '<button class="footer-btn" id="exgRewriteBtn">다시 쓰기</button><div class="exg-trace-status" id="exgRewriteStatus" style="text-align:center;margin-top:8px"></div>' : ''}
     </div>`;
   return head + card('01', '읽기', 'Scripture', read) + card('02', '오늘의 단어', 'Word', word) + card('03', '묵상', 'Meditation', essay)
-       + card('04', '질문', '오늘 하루 들고 다닐 것', question) + card('05', '핵심 구절 따라 쓰기', '선택', trace) + card('06', '기도', 'Prayer', prayer) + foot;
+       + card('04', '질문', '오늘 하루 들고 다닐 것', question) + card('05', '핵심 구절 따라 쓰기', '선택', trace) + card('06', '기도', 'Prayer', prayer) + card('07', '나의 묵상', '선택', mine) + foot;
 }
 // 가족 앱 「핵심 구절 따라 쓰기」와 같은 판정(80%). 여기서는 완료 조건이 아니라 표시만 한다.
 function exgNormTrace(s) { return (s || '').replace(/[^가-힣a-zA-Z0-9]/g, ''); }
@@ -1731,12 +1747,44 @@ function exgBindTrace(dateKey, tid) {
   inp.addEventListener('blur', save);      // 칸을 벗어나거나 앱을 닫을 때 바로 저장
   exgUpdateTrace(tid);
 }
+// [2026-11-24] 나의 묵상 칸 연결. 따라 쓰기와 같은 방식(0.6초 뒤·칸을 벗어날 때 저장, 오늘 화면과 달력 상세를 서로 맞춤).
+function exgBindMine(dateKey, tid) {
+  const inp = document.getElementById(tid + 'NoteInput'), box = document.getElementById(tid + 'Grace'), st = document.getElementById(tid + 'NoteStatus');
+  if (!inp || !box) return;
+  const oid = tid === 'exg' ? 'det' : 'exg';
+  const nKey = `devotion-${dateKey}-note`, gKey = `devotion-${dateKey}-grace`;
+  const paint = b => { const g = +(localStorage.getItem(gKey) || 0); b.querySelectorAll('button').forEach(x => x.classList.toggle('on', +x.dataset.n <= g)); };
+  let timer = null;
+  const save = () => {
+    clearTimeout(timer);
+    const cur = localStorage.getItem(nKey) || '';
+    if (inp.value.trim()) { if (inp.value !== cur) localStorage.setItem(nKey, inp.value); }
+    else if (cur) localStorage.removeItem(nKey);
+    if (st) st.textContent = inp.value.trim() ? '저장됨' : '';
+    const other = document.getElementById(oid + 'NoteInput');
+    if (other && other.dataset.day === dateKey && other.value !== inp.value) other.value = inp.value;
+  };
+  inp.dataset.day = dateKey; box.dataset.day = dateKey;
+  inp.addEventListener('input', () => { if (st) st.textContent = ''; clearTimeout(timer); timer = setTimeout(save, 600); });
+  inp.addEventListener('blur', save);
+  box.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (localStorage.getItem(gKey) === b.dataset.n) localStorage.removeItem(gKey);   // 같은 숫자를 다시 누르면 지움
+    else localStorage.setItem(gKey, b.dataset.n);
+    paint(box);
+    const other = document.getElementById(oid + 'Grace');
+    if (other && other.dataset.day === dateKey) paint(other);
+  });
+  paint(box);
+  if (st && inp.value.trim()) st.textContent = '저장됨';
+}
 function showMeditation(entry, dateKey) {
   ['progressView', 'noResultView', 'resultView'].forEach(id => { document.getElementById(id).style.display = 'none'; });
   const view = document.getElementById('medView');
   view.innerHTML = renderMedHTML(entry, dateKey, true);
   view.style.display = 'block';
   exgBindTrace(dateKey, 'exg');
+  exgBindMine(dateKey, 'exg');
   const btn = document.getElementById('exgRewriteBtn');
   if (btn) btn.addEventListener('click', () => rewriteMeditation(dateKey));
 }
@@ -2066,6 +2114,7 @@ function openDetail(dateStr) {
     document.getElementById('detailTitle').textContent = e.title_ko || '—';
     document.getElementById('detailMed').innerHTML = renderMedHTML(e, dateStr, false);
     exgBindTrace(dateStr, 'det');
+    exgBindMine(dateStr, 'det');
     detailBody.classList.add('exg-mode');
     document.getElementById('detailOverlay').classList.add('show');
     document.getElementById('detailOverlay').dataset.currentDate = dateStr;
@@ -2180,6 +2229,8 @@ document.getElementById('detailDeleteBtn').addEventListener('click', function() 
   localStorage.removeItem('devotion-' + dateStr + '-ai1');
   localStorage.removeItem('devotion-' + dateStr + '-ai2');
   localStorage.removeItem('devotion-' + dateStr + '-trace');
+  localStorage.removeItem('devotion-' + dateStr + '-note');
+  localStorage.removeItem('devotion-' + dateStr + '-grace');
   if (dateStr === getTodayKey() && document.getElementById('medView').style.display !== 'none') {
     document.getElementById('medView').style.display = 'none';
     document.getElementById('noResultView').style.display = 'block';
